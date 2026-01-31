@@ -1,3 +1,29 @@
 ---
+description: プロジェクト共通ルール - docs 確認必須・コーディング規約順守
 alwaysApply: true
 ---
+
+# プロジェクトルール（Orby）
+
+## 1. 作業開始前の必須確認
+
+**システム（タスク）を始める前に、必ず `docs/` ディレクトリ配下のドキュメントを確認すること。**
+
+- `docs/requirements.md` — 要件
+- `docs/tech-stack.md` — 技術スタック・バージョン・構成
+- `docs/notes.md` — 開発手順・環境・Git 等
+
+上記を読んだうえで、仕様・技術選定・規約に沿って実装する。
+
+## 2. コーディング規約の順守
+
+- **プロジェクトのコーディング規約**（`docs/tech-stack.md` 等で定義されているもの）を守る。
+- **各ライブラリの公式・最新のコーディング規約**に従う（Next.js App Router、React、TypeScript、Tailwind CSS、Phaser、Biome など）。
+- 不明な場合は、該当ライブラリの公式ドキュメントまたは推奨スタイルを参照する。
+
+## 3. 本プロジェクトで特に守ること（tech-stack より）
+
+- **Lint・フォーマット**: Biome を使用。`npm run lint` / `npm run format` で整合を取る。
+- **パスエイリアス**: `@/*` で `src/` 直下を参照する（`tsconfig.json` の設定に従う）。
+- **Next.js**: App Router（`app/`）を使用。Phaser ゲームは `"use client"` でクライアントコンポーネントとして組み込む。
+- **静的アセット**: ゲーム用は `public/orby/` に配置する。
