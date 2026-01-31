@@ -339,7 +339,10 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       );
     }
 
-    private flipEnemy(enemy: EnemySprite, enemyBody: Phaser.Physics.Arcade.Body) {
+    private flipEnemy(
+      enemy: EnemySprite,
+      enemyBody: Phaser.Physics.Arcade.Body,
+    ) {
       enemy.moveDirection *= -1;
       enemy.setFlipX(enemy.moveDirection > 0);
       enemy.x += enemy.moveDirection * GAME_CONSTANTS.ENEMY.FLIP_ADJUST;
