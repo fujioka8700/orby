@@ -1,0 +1,30 @@
+{
+    "activeFile": "assets/maps/1st_stage.tmx",
+    "expandedProjectPaths": [
+        ".",
+        "assets/maps",
+        "assets"
+    ],
+    "fileStates": {
+        "assets/maps/1st_stage.tmx": {
+            "scale": 1.6847656249999998,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 128.20774402967774,
+                "y": 119.89798284256901
+            }
+        },
+        "assets/maps/Grass_Tileset.tsx": {
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        }
+    },
+    "openFiles": [
+        "assets/maps/1st_stage.tmx"
+    ],
+    "project": "orby.tiled-project",
+    "recentFiles": [
+        "assets/maps/1st_stage.tmx",
+        "assets/maps/Grass_Tileset.tsx"
+    ]
+}
