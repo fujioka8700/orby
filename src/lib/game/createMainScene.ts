@@ -32,6 +32,8 @@ export function createMainScene(PhaserLib: typeof Phaser) {
     preload() {
       this.load.image("tilesetGrass", TILEMAP_ASSETS.tilesetGrass);
       this.load.image("tilesetPlatform", TILEMAP_ASSETS.tilesetPlatform);
+      this.load.image("tilesetGrassOneway", TILEMAP_ASSETS.tilesetGrassOneway);
+      this.load.image("tilesetLeaf", TILEMAP_ASSETS.tilesetLeaf);
       this.load.tilemapTiledJSON("tilemap", TILEMAP_ASSETS.tilemap);
       this.load.spritesheet("player", PLAYER_ASSET, {
         frameWidth: GAME_CONSTANTS.PLAYER.FRAME_WIDTH,
@@ -64,9 +66,19 @@ export function createMainScene(PhaserLib: typeof Phaser) {
         "Platform",
         "tilesetPlatform",
       );
+      const tilesetGrassOneway = this.map.addTilesetImage(
+        "Grass_Oneway",
+        "tilesetGrassOneway",
+      );
+      const tilesetLeaf = this.map.addTilesetImage(
+        "Leaf_Tileset",
+        "tilesetLeaf",
+      );
       const tilesets: Phaser.Tilemaps.Tileset[] = [];
       if (tilesetGrass) tilesets.push(tilesetGrass);
       if (tilesetPlatform) tilesets.push(tilesetPlatform);
+      if (tilesetGrassOneway) tilesets.push(tilesetGrassOneway);
+      if (tilesetLeaf) tilesets.push(tilesetLeaf);
       if (tilesets.length === 0) {
         console.error("Failed to load tilesets");
         return;
