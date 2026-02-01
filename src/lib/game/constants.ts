@@ -15,7 +15,7 @@ export const GAME_CONSTANTS = {
     ACCELERATION: 800,
     DECELERATION: 1000,
     AIR_CONTROL: 0.5,
-    JUMP_VELOCITY: -350,
+    JUMP_VELOCITY: -250,
     JUMP_CANCEL_FACTOR: 0.2,
     MIN_VELOCITY_THRESHOLD: 10,
   },
@@ -48,5 +48,8 @@ export const SPIDER_ASSET = "/orby/assets/graphics/enemies/Spider_1.png";
 export const TILEMAP_ASSETS = {
   tilesetGrass: "/orby/assets/graphics/environment/tilesets/Grass_Tileset.png",
   tilesetPlatform: "/orby/assets/graphics/environment/interactive/Platform.png",
+  tilesetGrassOneway:
+    "/orby/assets/graphics/environment/tilesets/Grass_Oneway.png",
+  tilesetLeaf: "/orby/assets/graphics/environment/tilesets/Leaf_Tileset.png",
   tilemap: "/orby/assets/maps/1st_stage_tilemap.json",
 } as const;
