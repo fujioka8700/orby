@@ -1,9 +1,15 @@
 /// <reference types="phaser" />
 import {
   GAME_CONSTANTS,
+  GAME_HEIGHT,
+  GAME_WIDTH,
+  LIVES_ICON_ASSET,
+  LIVES_INITIAL,
   PLAYER_ASSET,
   SPIDER_ASSET,
   TILEMAP_ASSETS,
+  UI_FONT_FAMILY,
+  UI_LIVES_POSITION,
 } from "@/lib/game/constants";
 import { globalControls } from "@/lib/game/globalControls";
 
@@ -20,6 +26,14 @@ export function createMainScene(PhaserLib: typeof Phaser) {
     private platformLayer!: Phaser.Tilemaps.TilemapLayer;
     private enemies: EnemySprite[] = [];
     private wasJumpPressed = false;
+    private livesCount = LIVES_INITIAL;
+    private livesIcon: Phaser.GameObjects.Image | null = null;
+    private livesText: Phaser.GameObjects.Text | null = null;
+    private playerStartX = GAME_CONSTANTS.PLAYER.DEFAULT_START_X;
+    private playerStartY = GAME_CONSTANTS.PLAYER.DEFAULT_START_Y;
+    private invincibleUntil = 0;
+    private deathY = 0;
+    private isGameOver = false;
     private readonly maxSpeed = GAME_CONSTANTS.MOVEMENT.MAX_SPEED;
     private readonly acceleration = GAME_CONSTANTS.MOVEMENT.ACCELERATION;
     private readonly deceleration = GAME_CONSTANTS.MOVEMENT.DECELERATION;
@@ -43,6 +57,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
         frameWidth: GAME_CONSTANTS.ENEMY.DISPLAY_WIDTH,
         frameHeight: GAME_CONSTANTS.ENEMY.DISPLAY_HEIGHT,
       });
+      this.load.image("livesIcon", LIVES_ICON_ASSET);
     }
 
     create() {
@@ -53,7 +68,9 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       this.setupPlayerCollision();
       this.createAnimations();
       this.setupEnemies();
+      this.setupPlayerEnemyOverlap();
       this.setupInput();
+      this.setupLivesUI();
     }
 
     private setupTilemap() {
@@ -104,8 +121,8 @@ export function createMainScene(PhaserLib: typeof Phaser) {
 
     private setupPlayer() {
       const objectLayer = this.map.getObjectLayer("objectsLayer");
-      let playerStartX: number = GAME_CONSTANTS.PLAYER.DEFAULT_START_X;
-      let playerStartY: number = GAME_CONSTANTS.PLAYER.DEFAULT_START_Y;
+      this.playerStartX = GAME_CONSTANTS.PLAYER.DEFAULT_START_X;
+      this.playerStartY = GAME_CONSTANTS.PLAYER.DEFAULT_START_Y;
 
       if (objectLayer) {
         const playerObj = objectLayer.objects.find(
@@ -116,14 +133,14 @@ export function createMainScene(PhaserLib: typeof Phaser) {
           playerObj.x !== undefined &&
           playerObj.y !== undefined
         ) {
-          playerStartX = playerObj.x;
-          playerStartY = playerObj.y;
+          this.playerStartX = playerObj.x;
+          this.playerStartY = playerObj.y;
         }
       }
 
       this.player = this.physics.add.sprite(
-        playerStartX,
-        playerStartY,
+        this.playerStartX,
+        this.playerStartY,
         "player",
         0,
       );
@@ -149,6 +166,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
     private setupCamera() {
       const mapWidth = this.map.widthInPixels;
       const mapHeight = this.map.heightInPixels;
+      this.deathY = mapHeight;
 
       this.cameras.main.startFollow(
         this.player,
@@ -157,7 +175,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
         GAME_CONSTANTS.CAMERA.FOLLOW_LERP_Y,
       );
       this.cameras.main.setBounds(0, 0, mapWidth, mapHeight);
-      this.physics.world.setBounds(0, 0, mapWidth, mapHeight);
+      this.physics.world.setBounds(0, 0, mapWidth, mapHeight + 400);
     }
 
     private setupPlayerCollision() {
@@ -289,11 +307,101 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       }
     }
 
+    private setupPlayerEnemyOverlap() {
+      this.physics.add.overlap(
+        this.player,
+        this.enemies,
+        () => {
+          if (this.time.now < this.invincibleUntil) return;
+          if (this.livesCount <= 0) return;
+          this.livesCount--;
+          this.updateLivesText();
+          if (this.livesCount > 0) {
+            this.respawnPlayer();
+          } else {
+            this.showGameOver();
+          }
+        },
+      );
+    }
+
+    private updateLivesText() {
+      if (this.livesText) {
+        this.livesText.setText(String(this.livesCount));
+      }
+    }
+
+    private respawnPlayer() {
+      this.player.setPosition(this.playerStartX, this.playerStartY);
+      const playerBody = this.player.body as Phaser.Physics.Arcade.Body;
+      playerBody.setVelocity(0, 0);
+      this.invincibleUntil = this.time.now + 1500;
+    }
+
+    private showGameOver() {
+      this.isGameOver = true;
+      this.physics.pause();
+
+      const centerX = GAME_WIDTH / 2;
+      const centerY = GAME_HEIGHT / 2;
+      const overlay = this.add.rectangle(
+        centerX,
+        centerY,
+        GAME_WIDTH,
+        GAME_HEIGHT,
+        0x000000,
+        0.6,
+      );
+      overlay.setOrigin(0.5);
+      overlay.setScrollFactor(0);
+
+      const gameOverText = this.add.text(centerX, centerY, "GAME OVER", {
+        fontFamily: UI_FONT_FAMILY,
+        fontSize: "24px",
+        color: "#ffffff",
+      });
+      gameOverText.setOrigin(0.5);
+      gameOverText.setScrollFactor(0);
+    }
+
+    private setupLivesUI() {
+      const { x, y } = UI_LIVES_POSITION;
+      const iconSize = 16;
+      this.livesIcon = this.add.image(x, y, "livesIcon");
+      this.livesIcon.setOrigin(0, 0);
+      this.livesIcon.setDisplaySize(iconSize, iconSize);
+      this.livesIcon.setScrollFactor(0);
+
+      const textX = x + iconSize + 4;
+      this.livesText = this.add.text(textX, y, String(this.livesCount), {
+        fontFamily: UI_FONT_FAMILY,
+        fontSize: "16px",
+        color: "#ffffff",
+      });
+      this.livesText.setOrigin(0, 0);
+      this.livesText.setScrollFactor(0);
+    }
+
     update() {
+      if (this.isGameOver) return;
       if (!this.player?.body) return;
 
       const playerBody = this.player.body as Phaser.Physics.Arcade.Body;
       const deltaTime = this.game.loop.delta / 1000;
+
+      if (
+        playerBody.bottom > this.deathY &&
+        this.time.now >= this.invincibleUntil &&
+        this.livesCount > 0
+      ) {
+        this.livesCount--;
+        this.updateLivesText();
+        if (this.livesCount > 0) {
+          this.respawnPlayer();
+        } else {
+          this.showGameOver();
+        }
+      }
 
       this.handleJump(playerBody);
       this.handleMovement(playerBody, deltaTime);

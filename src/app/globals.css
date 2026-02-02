@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: "Round9x13";
+  src: url("/orby/assets/fonts/Round9x13.ttf") format("truetype");
+}
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
