@@ -45,6 +45,12 @@ export const GAME_CONSTANTS = {
 export const PLAYER_ASSET = "/orby/assets/graphics/characters/Player.png";
 export const SPIDER_ASSET = "/orby/assets/graphics/enemies/Spider_1.png";
 
+/** 残機UI */
+export const LIVES_INITIAL = 2;
+export const UI_LIVES_POSITION = { x: 16, y: 16 } as const;
+export const LIVES_ICON_ASSET = "/orby/assets/graphics/ui/Stars_Ui.png";
+export const UI_FONT_FAMILY = "Round9x13";
+
 export const TILEMAP_ASSETS = {
   tilesetGrass: "/orby/assets/graphics/environment/tilesets/Grass_Tileset.png",
   tilesetPlatform: "/orby/assets/graphics/environment/interactive/Platform.png",
