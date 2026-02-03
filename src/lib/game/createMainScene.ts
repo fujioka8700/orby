@@ -29,8 +29,8 @@ export function createMainScene(PhaserLib: typeof Phaser) {
     private livesCount = LIVES_INITIAL;
     private livesIcon: Phaser.GameObjects.Image | null = null;
     private livesText: Phaser.GameObjects.Text | null = null;
-    private playerStartX = GAME_CONSTANTS.PLAYER.DEFAULT_START_X;
-    private playerStartY = GAME_CONSTANTS.PLAYER.DEFAULT_START_Y;
+    private playerStartX: number = GAME_CONSTANTS.PLAYER.DEFAULT_START_X;
+    private playerStartY: number = GAME_CONSTANTS.PLAYER.DEFAULT_START_Y;
     private invincibleUntil = 0;
     private deathY = 0;
     private isGameOver = false;
@@ -77,19 +77,19 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       this.map = this.make.tilemap({ key: "tilemap" });
       const tilesetGrass = this.map.addTilesetImage(
         "Grass_Tileset",
-        "tilesetGrass",
+        "tilesetGrass"
       );
       const tilesetPlatform = this.map.addTilesetImage(
         "Platform",
-        "tilesetPlatform",
+        "tilesetPlatform"
       );
       const tilesetGrassOneway = this.map.addTilesetImage(
         "Grass_Oneway",
-        "tilesetGrassOneway",
+        "tilesetGrassOneway"
       );
       const tilesetLeaf = this.map.addTilesetImage(
         "Leaf_Tileset",
-        "tilesetLeaf",
+        "tilesetLeaf"
       );
       const tilesets: Phaser.Tilemaps.Tileset[] = [];
       if (tilesetGrass) tilesets.push(tilesetGrass);
@@ -126,7 +126,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
 
       if (objectLayer) {
         const playerObj = objectLayer.objects.find(
-          (obj) => obj.name === "Player" || obj.name === "player",
+          (obj) => obj.name === "Player" || obj.name === "player"
         );
         if (
           playerObj &&
@@ -142,7 +142,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
         this.playerStartX,
         this.playerStartY,
         "player",
-        0,
+        0
       );
 
       const playerBody = this.player.body as Phaser.Physics.Arcade.Body;
@@ -157,7 +157,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
 
       playerBody.setSize(
         GAME_CONSTANTS.PLAYER.ACTUAL_WIDTH,
-        GAME_CONSTANTS.PLAYER.ACTUAL_HEIGHT,
+        GAME_CONSTANTS.PLAYER.ACTUAL_HEIGHT
       );
       playerBody.setOffset(offsetX, offsetY);
       playerBody.setCollideWorldBounds(true);
@@ -172,7 +172,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
         this.player,
         true,
         GAME_CONSTANTS.CAMERA.FOLLOW_LERP_X,
-        GAME_CONSTANTS.CAMERA.FOLLOW_LERP_Y,
+        GAME_CONSTANTS.CAMERA.FOLLOW_LERP_Y
       );
       this.cameras.main.setBounds(0, 0, mapWidth, mapHeight);
       this.physics.world.setBounds(0, 0, mapWidth, mapHeight + 400);
@@ -206,7 +206,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
             return true;
           }
           return false;
-        },
+        }
       );
     }
 
@@ -256,7 +256,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       if (!objectLayer) return;
 
       const spiderObjects = objectLayer.objects.filter(
-        (obj) => obj.name === "Spider_1",
+        (obj) => obj.name === "Spider_1"
       );
 
       for (const enemyObj of spiderObjects) {
@@ -265,22 +265,22 @@ export function createMainScene(PhaserLib: typeof Phaser) {
             enemyObj.x,
             enemyObj.y,
             "spider",
-            0,
+            0
           ) as EnemySprite;
 
           enemy.setDisplaySize(
             GAME_CONSTANTS.ENEMY.DISPLAY_WIDTH,
-            GAME_CONSTANTS.ENEMY.DISPLAY_HEIGHT,
+            GAME_CONSTANTS.ENEMY.DISPLAY_HEIGHT
           );
 
           const enemyBody = enemy.body as Phaser.Physics.Arcade.Body;
           enemyBody.setSize(
             GAME_CONSTANTS.ENEMY.BODY_WIDTH,
-            GAME_CONSTANTS.ENEMY.BODY_HEIGHT,
+            GAME_CONSTANTS.ENEMY.BODY_HEIGHT
           );
           enemyBody.setOffset(
             GAME_CONSTANTS.ENEMY.OFFSET_X,
-            GAME_CONSTANTS.ENEMY.OFFSET_Y,
+            GAME_CONSTANTS.ENEMY.OFFSET_Y
           );
           enemyBody.setCollideWorldBounds(true);
 
@@ -308,21 +308,17 @@ export function createMainScene(PhaserLib: typeof Phaser) {
     }
 
     private setupPlayerEnemyOverlap() {
-      this.physics.add.overlap(
-        this.player,
-        this.enemies,
-        () => {
-          if (this.time.now < this.invincibleUntil) return;
-          if (this.livesCount <= 0) return;
-          this.livesCount--;
-          this.updateLivesText();
-          if (this.livesCount > 0) {
-            this.respawnPlayer();
-          } else {
-            this.showGameOver();
-          }
-        },
-      );
+      this.physics.add.overlap(this.player, this.enemies, () => {
+        if (this.time.now < this.invincibleUntil) return;
+        if (this.livesCount <= 0) return;
+        this.livesCount--;
+        this.updateLivesText();
+        if (this.livesCount > 0) {
+          this.respawnPlayer();
+        } else {
+          this.showGameOver();
+        }
+      });
     }
 
     private updateLivesText() {
@@ -350,7 +346,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
         GAME_WIDTH,
         GAME_HEIGHT,
         0x000000,
-        0.6,
+        0.6
       );
       overlay.setOrigin(0.5);
       overlay.setScrollFactor(0);
@@ -418,7 +414,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
 
         const { checkX, checkY } = this.getEnemySensorPosition(
           enemy,
-          enemyBody,
+          enemyBody
         );
         const hasFloor = this.checkEnemyFloor(checkX, checkY);
         const hitWall = enemyBody.blocked.left || enemyBody.blocked.right;
@@ -429,7 +425,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
         }
 
         enemyBody.setVelocityX(
-          GAME_CONSTANTS.ENEMY.SPEED_X * enemy.moveDirection,
+          GAME_CONSTANTS.ENEMY.SPEED_X * enemy.moveDirection
         );
 
         if (!enemyBody.blocked.down) {
@@ -440,7 +436,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
 
     private getEnemySensorPosition(
       enemy: EnemySprite,
-      enemyBody: Phaser.Physics.Arcade.Body,
+      enemyBody: Phaser.Physics.Arcade.Body
     ): { checkX: number; checkY: number } {
       const checkX =
         enemy.moveDirection > 0
@@ -461,7 +457,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
 
     private flipEnemy(
       enemy: EnemySprite,
-      enemyBody: Phaser.Physics.Arcade.Body,
+      enemyBody: Phaser.Physics.Arcade.Body
     ) {
       enemy.moveDirection *= -1;
       enemy.setFlipX(enemy.moveDirection > 0);
@@ -486,7 +482,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
         !onFloor
       ) {
         playerBody.setVelocityY(
-          playerBody.velocity.y * GAME_CONSTANTS.MOVEMENT.JUMP_CANCEL_FACTOR,
+          playerBody.velocity.y * GAME_CONSTANTS.MOVEMENT.JUMP_CANCEL_FACTOR
         );
       }
 
@@ -495,7 +491,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
 
     private handleMovement(
       playerBody: Phaser.Physics.Arcade.Body,
-      deltaTime: number,
+      deltaTime: number
     ) {
       const onFloor = playerBody.touching.down || playerBody.blocked.down;
       const leftInput = this.cursors.left.isDown || globalControls.left;
@@ -507,14 +503,14 @@ export function createMainScene(PhaserLib: typeof Phaser) {
           playerBody,
           onFloor,
           currentVelocityX,
-          deltaTime,
+          deltaTime
         );
       } else if (rightInput) {
         this.handleRightMovement(
           playerBody,
           onFloor,
           currentVelocityX,
-          deltaTime,
+          deltaTime
         );
       } else {
         this.handleNoInput(playerBody, onFloor, currentVelocityX, deltaTime);
@@ -525,7 +521,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       playerBody: Phaser.Physics.Arcade.Body,
       onFloor: boolean,
       currentVelocityX: number,
-      deltaTime: number,
+      deltaTime: number
     ) {
       const controlFactor = onFloor ? 1.0 : this.airControl;
       const targetVelocity = -this.maxSpeed * controlFactor;
@@ -536,7 +532,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
           : this.acceleration * this.airControl;
         const newVelocity = Math.max(
           currentVelocityX - accel * deltaTime,
-          targetVelocity,
+          targetVelocity
         );
         playerBody.setVelocityX(newVelocity);
       }
@@ -549,7 +545,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       playerBody: Phaser.Physics.Arcade.Body,
       onFloor: boolean,
       currentVelocityX: number,
-      deltaTime: number,
+      deltaTime: number
     ) {
       const controlFactor = onFloor ? 1.0 : this.airControl;
       const targetVelocity = this.maxSpeed * controlFactor;
@@ -560,7 +556,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
           : this.acceleration * this.airControl;
         const newVelocity = Math.min(
           currentVelocityX + accel * deltaTime,
-          targetVelocity,
+          targetVelocity
         );
         playerBody.setVelocityX(newVelocity);
       }
@@ -573,7 +569,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       playerBody: Phaser.Physics.Arcade.Body,
       onFloor: boolean,
       currentVelocityX: number,
-      deltaTime: number,
+      deltaTime: number
     ) {
       if (onFloor) {
         if (
@@ -598,7 +594,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
 
     private updatePlayerAnimation(
       playerBody: Phaser.Physics.Arcade.Body,
-      onFloor: boolean,
+      onFloor: boolean
     ) {
       if (onFloor) {
         this.player.play("walk", true);
