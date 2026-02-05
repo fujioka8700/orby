@@ -3,12 +3,16 @@ import {
   GAME_CONSTANTS,
   GAME_HEIGHT,
   GAME_WIDTH,
+  GAME_OVER_FONT_SIZE,
+  GAME_OVER_OVERLAY_ALPHA,
   LIVES_ICON_ASSET,
   LIVES_INITIAL,
   PLAYER_ASSET,
+  PLAYER_MISS_ASSET,
   SPIDER_ASSET,
   TILEMAP_ASSETS,
   UI_FONT_FAMILY,
+  UI_LIVES_ICON_SIZE,
   UI_LIVES_POSITION,
 } from "@/lib/game/constants";
 import { globalControls } from "@/lib/game/globalControls";
@@ -34,6 +38,8 @@ export function createMainScene(PhaserLib: typeof Phaser) {
     private invincibleUntil = 0;
     private deathY = 0;
     private isGameOver = false;
+    private isPlayingMissSequence = false;
+    private missSequenceOnComplete: (() => void) | null = null;
     private readonly maxSpeed = GAME_CONSTANTS.MOVEMENT.MAX_SPEED;
     private readonly acceleration = GAME_CONSTANTS.MOVEMENT.ACCELERATION;
     private readonly deceleration = GAME_CONSTANTS.MOVEMENT.DECELERATION;
@@ -58,6 +64,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
         frameHeight: GAME_CONSTANTS.ENEMY.DISPLAY_HEIGHT,
       });
       this.load.image("livesIcon", LIVES_ICON_ASSET);
+      this.load.image("player_miss", PLAYER_MISS_ASSET);
     }
 
     create() {
@@ -75,27 +82,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
 
     private setupTilemap() {
       this.map = this.make.tilemap({ key: "tilemap" });
-      const tilesetGrass = this.map.addTilesetImage(
-        "Grass_Tileset",
-        "tilesetGrass"
-      );
-      const tilesetPlatform = this.map.addTilesetImage(
-        "Platform",
-        "tilesetPlatform"
-      );
-      const tilesetGrassOneway = this.map.addTilesetImage(
-        "Grass_Oneway",
-        "tilesetGrassOneway"
-      );
-      const tilesetLeaf = this.map.addTilesetImage(
-        "Leaf_Tileset",
-        "tilesetLeaf"
-      );
-      const tilesets: Phaser.Tilemaps.Tileset[] = [];
-      if (tilesetGrass) tilesets.push(tilesetGrass);
-      if (tilesetPlatform) tilesets.push(tilesetPlatform);
-      if (tilesetGrassOneway) tilesets.push(tilesetGrassOneway);
-      if (tilesetLeaf) tilesets.push(tilesetLeaf);
+      const tilesets = this.collectTilesets();
       if (tilesets.length === 0) {
         console.error("Failed to load tilesets");
         return;
@@ -117,6 +104,22 @@ export function createMainScene(PhaserLib: typeof Phaser) {
           tile.collideRight = false;
         }
       });
+    }
+
+    private collectTilesets(): Phaser.Tilemaps.Tileset[] {
+      const tilesets: Phaser.Tilemaps.Tileset[] = [];
+      const grass = this.map.addTilesetImage("Grass_Tileset", "tilesetGrass");
+      const platform = this.map.addTilesetImage("Platform", "tilesetPlatform");
+      const grassOneway = this.map.addTilesetImage(
+        "Grass_Oneway",
+        "tilesetGrassOneway"
+      );
+      const leaf = this.map.addTilesetImage("Leaf_Tileset", "tilesetLeaf");
+      if (grass) tilesets.push(grass);
+      if (platform) tilesets.push(platform);
+      if (grassOneway) tilesets.push(grassOneway);
+      if (leaf) tilesets.push(leaf);
+      return tilesets;
     }
 
     private setupPlayer() {
@@ -146,21 +149,24 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       );
 
       const playerBody = this.player.body as Phaser.Physics.Arcade.Body;
-      const offsetX =
-        (GAME_CONSTANTS.PLAYER.FRAME_WIDTH -
-          GAME_CONSTANTS.PLAYER.ACTUAL_WIDTH) /
-        2;
-      const offsetY =
-        (GAME_CONSTANTS.PLAYER.FRAME_HEIGHT -
-          GAME_CONSTANTS.PLAYER.ACTUAL_HEIGHT) /
-        2;
-
-      playerBody.setSize(
+      this.applyPlayerBodySize(
+        playerBody,
         GAME_CONSTANTS.PLAYER.ACTUAL_WIDTH,
         GAME_CONSTANTS.PLAYER.ACTUAL_HEIGHT
       );
-      playerBody.setOffset(offsetX, offsetY);
       playerBody.setCollideWorldBounds(true);
+    }
+
+    private applyPlayerBodySize(
+      body: Phaser.Physics.Arcade.Body,
+      width: number,
+      height: number
+    ) {
+      body.setSize(width, height);
+      body.setOffset(
+        (GAME_CONSTANTS.PLAYER.FRAME_WIDTH - width) / 2,
+        (GAME_CONSTANTS.PLAYER.FRAME_HEIGHT - height) / 2
+      );
     }
 
     private setupCamera() {
@@ -168,14 +174,18 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       const mapHeight = this.map.heightInPixels;
       this.deathY = mapHeight;
 
+      this.startCameraFollow();
+      this.cameras.main.setBounds(0, 0, mapWidth, mapHeight);
+      this.physics.world.setBounds(0, 0, mapWidth, mapHeight + 400);
+    }
+
+    private startCameraFollow() {
       this.cameras.main.startFollow(
         this.player,
         true,
         GAME_CONSTANTS.CAMERA.FOLLOW_LERP_X,
         GAME_CONSTANTS.CAMERA.FOLLOW_LERP_Y
       );
-      this.cameras.main.setBounds(0, 0, mapWidth, mapHeight);
-      this.physics.world.setBounds(0, 0, mapWidth, mapHeight + 400);
     }
 
     private setupPlayerCollision() {
@@ -309,10 +319,17 @@ export function createMainScene(PhaserLib: typeof Phaser) {
 
     private setupPlayerEnemyOverlap() {
       this.physics.add.overlap(this.player, this.enemies, () => {
+        if (this.isPlayingMissSequence) return;
         if (this.time.now < this.invincibleUntil) return;
         if (this.livesCount <= 0) return;
-        this.livesCount--;
-        this.updateLivesText();
+        this.triggerMiss();
+      });
+    }
+
+    private triggerMiss() {
+      this.livesCount--;
+      this.updateLivesText();
+      this.playMissSequence(() => {
         if (this.livesCount > 0) {
           this.respawnPlayer();
         } else {
@@ -327,15 +344,55 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       }
     }
 
+    private playMissSequence(onComplete: () => void) {
+      this.isPlayingMissSequence = true;
+      this.missSequenceOnComplete = onComplete;
+      this.cameras.main.stopFollow();
+      this.player.anims.stop();
+      const playerBody = this.player.body as Phaser.Physics.Arcade.Body;
+      this.player.setTexture("player_miss", 0);
+      this.applyPlayerBodySize(
+        playerBody,
+        GAME_CONSTANTS.PLAYER.MISS_BODY_WIDTH,
+        GAME_CONSTANTS.PLAYER.MISS_BODY_HEIGHT
+      );
+      playerBody.setVelocity(0, GAME_CONSTANTS.PLAYER.MISS_BOUNCE_VELOCITY);
+      playerBody.checkCollision.none = true;
+    }
+
+    private finishMissSequence() {
+      if (!this.missSequenceOnComplete) return;
+      this.isPlayingMissSequence = false;
+      const playerBody = this.player.body as Phaser.Physics.Arcade.Body;
+      playerBody.checkCollision.none = false;
+      this.restorePlayerAppearance();
+      const callback = this.missSequenceOnComplete;
+      this.missSequenceOnComplete = null;
+      callback();
+    }
+
+    private restorePlayerAppearance() {
+      this.player.setTexture("player");
+      this.player.setFrame(0);
+      this.applyPlayerBodySize(
+        this.player.body as Phaser.Physics.Arcade.Body,
+        GAME_CONSTANTS.PLAYER.ACTUAL_WIDTH,
+        GAME_CONSTANTS.PLAYER.ACTUAL_HEIGHT
+      );
+    }
+
     private respawnPlayer() {
+      this.startCameraFollow();
       this.player.setPosition(this.playerStartX, this.playerStartY);
       const playerBody = this.player.body as Phaser.Physics.Arcade.Body;
       playerBody.setVelocity(0, 0);
-      this.invincibleUntil = this.time.now + 1500;
+      this.invincibleUntil =
+        this.time.now + GAME_CONSTANTS.PLAYER.INVINCIBLE_DURATION_MS;
     }
 
     private showGameOver() {
       this.isGameOver = true;
+      this.player.setVisible(false);
       this.physics.pause();
 
       const centerX = GAME_WIDTH / 2;
@@ -346,14 +403,14 @@ export function createMainScene(PhaserLib: typeof Phaser) {
         GAME_WIDTH,
         GAME_HEIGHT,
         0x000000,
-        0.6
+        GAME_OVER_OVERLAY_ALPHA
       );
       overlay.setOrigin(0.5);
       overlay.setScrollFactor(0);
 
       const gameOverText = this.add.text(centerX, centerY, "GAME OVER", {
         fontFamily: UI_FONT_FAMILY,
-        fontSize: "24px",
+        fontSize: GAME_OVER_FONT_SIZE,
         color: "#ffffff",
       });
       gameOverText.setOrigin(0.5);
@@ -362,13 +419,12 @@ export function createMainScene(PhaserLib: typeof Phaser) {
 
     private setupLivesUI() {
       const { x, y } = UI_LIVES_POSITION;
-      const iconSize = 16;
       this.livesIcon = this.add.image(x, y, "livesIcon");
       this.livesIcon.setOrigin(0, 0);
-      this.livesIcon.setDisplaySize(iconSize, iconSize);
+      this.livesIcon.setDisplaySize(UI_LIVES_ICON_SIZE, UI_LIVES_ICON_SIZE);
       this.livesIcon.setScrollFactor(0);
 
-      const textX = x + iconSize + 4;
+      const textX = x + UI_LIVES_ICON_SIZE + 4;
       this.livesText = this.add.text(textX, y, String(this.livesCount), {
         fontFamily: UI_FONT_FAMILY,
         fontSize: "16px",
@@ -382,6 +438,17 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       if (this.isGameOver) return;
       if (!this.player?.body) return;
 
+      if (this.isPlayingMissSequence) {
+        this.updateEnemies();
+        const playerBody = this.player.body as Phaser.Physics.Arcade.Body;
+        const cameraBottom =
+          this.cameras.main.scrollY + this.cameras.main.height;
+        if (playerBody.bottom > cameraBottom) {
+          this.finishMissSequence();
+        }
+        return;
+      }
+
       const playerBody = this.player.body as Phaser.Physics.Arcade.Body;
       const deltaTime = this.game.loop.delta / 1000;
 
@@ -390,18 +457,26 @@ export function createMainScene(PhaserLib: typeof Phaser) {
         this.time.now >= this.invincibleUntil &&
         this.livesCount > 0
       ) {
-        this.livesCount--;
-        this.updateLivesText();
-        if (this.livesCount > 0) {
-          this.respawnPlayer();
-        } else {
-          this.showGameOver();
-        }
+        this.triggerMiss();
+        return;
       }
 
       this.handleJump(playerBody);
       this.handleMovement(playerBody, deltaTime);
       this.updateEnemies();
+      this.updateInvincibilityBlink();
+    }
+
+    private updateInvincibilityBlink() {
+      if (this.time.now < this.invincibleUntil) {
+        const interval = GAME_CONSTANTS.PLAYER.INVINCIBLE_BLINK_INTERVAL_MS;
+        const phase = Math.floor(this.time.now / interval) % 2;
+        this.player.setAlpha(
+          phase === 0 ? 1 : GAME_CONSTANTS.PLAYER.INVINCIBLE_BLINK_ALPHA
+        );
+      } else {
+        this.player.setAlpha(1);
+      }
     }
 
     private updateEnemies() {
