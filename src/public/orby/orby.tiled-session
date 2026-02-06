@@ -1,10 +1,10 @@
 {
     "activeFile": "assets/maps/1st_stage.tmx",
     "expandedProjectPaths": [
-        "sandbox",
-        ".",
         "assets/maps",
-        "assets"
+        ".",
+        "assets",
+        "sandbox"
     ],
     "fileStates": {
         "": {

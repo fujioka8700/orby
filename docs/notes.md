@@ -7,6 +7,9 @@ $ docker compose run --rm app sh -c 'npx create-next-app . --typescript'
 # package-lock.jsonからインストール
 $ docker compose run --rm app sh -c 'npm ci'
 
+# npm run buildを通す
+$ docker compose exec app npm run build
+
 # コンテナ起動
 $ docker compose up
 
