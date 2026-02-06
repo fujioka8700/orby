@@ -33,6 +33,8 @@ export const GAME_CONSTANTS = {
   CAMERA: {
     FOLLOW_LERP_X: 0.1,
     FOLLOW_LERP_Y: 0.1,
+    /** ミス復帰時のフェード時間（ms） */
+    FADE_DURATION_MS: 400,
   },
   COLLISION: {
     ONE_WAY_TOLERANCE_PREV: 2,
@@ -68,6 +70,8 @@ export const UI_FONT_FAMILY = "Round9x13";
 /** GAME OVER 表示 */
 export const GAME_OVER_OVERLAY_ALPHA = 0.6;
 export const GAME_OVER_FONT_SIZE = "24px";
+export const GAME_OVER_CONTINUE_FONT_SIZE = "14px";
+export const GAME_OVER_CONTINUE_OFFSET_Y = 40;
 
 export const TILEMAP_ASSETS = {
   tilesetGrass: "/orby/assets/graphics/environment/tilesets/Grass_Tileset.png",
