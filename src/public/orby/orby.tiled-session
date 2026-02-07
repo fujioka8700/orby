@@ -16,10 +16,10 @@
                 3
             ],
             "scale": 1.5,
-            "selectedLayer": 1,
+            "selectedLayer": 0,
             "viewCenter": {
-                "x": 162,
-                "y": 226
+                "x": 3000.333333333333,
+                "y": 188.66666666666666
             }
         },
         "assets/maps/1st_stage.tmx#Grass_Oneway": {

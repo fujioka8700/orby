@@ -15,6 +15,11 @@ import {
 import { createGameOverUI } from "@/lib/game/gameOverUI";
 import { updateEnemies as updateEnemiesAI } from "@/lib/game/enemyAI";
 import { globalControls } from "@/lib/game/globalControls";
+import {
+  ARCADE_DEBUG,
+  DEBUG,
+  PLAYER_START_POSITION,
+} from "@/lib/game/phaserConfig";
 import type { EnemySprite } from "@/lib/game/types";
 
 /** Phaser を動的 import した後に渡し、メインシーンクラスを取得する */
@@ -75,6 +80,8 @@ export function createMainScene(PhaserLib: typeof Phaser) {
     }
 
     create() {
+      const drawDebug = DEBUG && ARCADE_DEBUG;
+      (this.physics.world as Phaser.Physics.Arcade.World).drawDebug = drawDebug;
       this.cameras.main.setBackgroundColor("#2c3e50");
       this.setupTilemap();
       this.setupPlayer();
@@ -129,14 +136,22 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       return tilesets;
     }
 
+    /** DEBUG 時は phaserConfig.PLAYER_START_POSITION、そうでなければ "Player" */
+    private getPlayerStartObjectName(): string {
+      return DEBUG ? PLAYER_START_POSITION : "Player";
+    }
+
     private setupPlayer() {
       const objectLayer = this.map.getObjectLayer("objectsLayer");
       this.playerStartX = GAME_CONSTANTS.PLAYER.DEFAULT_START_X;
       this.playerStartY = GAME_CONSTANTS.PLAYER.DEFAULT_START_Y;
 
       if (objectLayer) {
+        const objectName = this.getPlayerStartObjectName();
         const playerObj = objectLayer.objects.find(
-          (obj) => obj.name === "Player" || obj.name === "player"
+          (obj) =>
+            obj.name === objectName ||
+            (objectName === "Player" && obj.name === "player")
         );
         if (
           playerObj &&

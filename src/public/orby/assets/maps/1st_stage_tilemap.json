@@ -82,6 +82,18 @@
                  "width":0,
                  "x":311.69,
                  "y":221.252
+                }, 
+                {
+                 "height":0,
+                 "id":3,
+                 "name":"Player_before_goal",
+                 "point":true,
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":0,
+                 "x":2967.33333333333,
+                 "y":220
                 }],
          "opacity":1,
          "type":"objectgroup",
@@ -90,7 +102,7 @@
          "y":0
         }],
  "nextlayerid":4,
- "nextobjectid":3,
+ "nextobjectid":4,
  "orientation":"orthogonal",
  "renderorder":"right-down",
  "tiledversion":"1.11.2",

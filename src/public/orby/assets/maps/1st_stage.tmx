@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="200" height="15" tilewidth="16" tileheight="16" infinite="0" nextlayerid="4" nextobjectid="3">
+<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="200" height="15" tilewidth="16" tileheight="16" infinite="0" nextlayerid="4" nextobjectid="4">
  <editorsettings>
   <export target="1st_stage_tilemap.json" format="json"/>
  </editorsettings>
@@ -178,6 +178,9 @@
    <point/>
   </object>
   <object id="2" name="Spider_1" x="311.69" y="221.252">
+   <point/>
+  </object>
+  <object id="3" name="Player_before_goal" x="2967.33" y="220">
    <point/>
   </object>
  </objectgroup>

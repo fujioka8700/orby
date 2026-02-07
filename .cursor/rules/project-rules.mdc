@@ -27,3 +27,8 @@ alwaysApply: true
 - **パスエイリアス**: `@/*` で `src/` 直下を参照する（`tsconfig.json` の設定に従う）。
 - **Next.js**: App Router（`app/`）を使用。Phaser ゲームは `"use client"` でクライアントコンポーネントとして組み込む。
 - **静的アセット**: ゲーム用は `public/orby/` に配置する。
+
+## 4. リファクタリング対象外
+
+- **`src/lib/game/phaserConfig.ts`** はリファクタリング対象外とする。内容の変更や構成の見直しは行わず、他のファイルから参照する形で利用する。
+- **`docs/notes.md`** はリファクタリング対象外とする。

@@ -1,8 +1,8 @@
 "use client";
 
 import { type RefObject, useEffect } from "react";
-import { GAME_HEIGHT, GAME_WIDTH } from "@/lib/game/constants";
 import { createMainScene } from "@/lib/game/createMainScene";
+import { getPhaserGameConfig } from "@/lib/game/getPhaserGameConfig";
 
 export function usePhaserGame(containerRef: RefObject<HTMLDivElement | null>) {
   useEffect(() => {
@@ -12,30 +12,9 @@ export function usePhaserGame(containerRef: RefObject<HTMLDivElement | null>) {
     let game: import("phaser").Game | null = null;
 
     const init = async () => {
-      const PhaserModule = await import("phaser");
-      const P = PhaserModule.default;
+      const P = (await import("phaser")).default;
       const GameScene = createMainScene(P);
-
-      game = new P.Game({
-        type: P.AUTO,
-        width: GAME_WIDTH,
-        height: GAME_HEIGHT,
-        parent: container,
-        backgroundColor: "#2c3e50",
-        scene: [GameScene],
-        scale: {
-          mode: P.Scale.FIT,
-          autoCenter: P.Scale.CENTER_BOTH,
-        },
-        physics: {
-          default: "arcade",
-          arcade: {
-            gravity: { x: 0, y: 600 },
-            debug: false,
-          },
-        },
-        pixelArt: true,
-      });
+      game = new P.Game(getPhaserGameConfig(container, GameScene, P));
     };
 
     init();
