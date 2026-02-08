@@ -14,6 +14,7 @@ import {
   PLAYER_MISS_ASSET,
   SPIDER_ASSET,
   TILEMAP_ASSETS,
+  TITLE_ASSET,
 } from "@/lib/game/constants";
 
 /** メインシーン用アセットをすべてプリロードする */
@@ -50,4 +51,5 @@ export function loadGameAssets(scene: Phaser.Scene): void {
   load.image(ASSET_KEYS.BACKGROUND, BACKGROUND_ASSET);
   load.image(ASSET_KEYS.COIN, COIN_ASSET);
   load.image(ASSET_KEYS.COINS_UI, COINS_UI_ASSET);
+  load.image(ASSET_KEYS.TITLE, TITLE_ASSET);
 }

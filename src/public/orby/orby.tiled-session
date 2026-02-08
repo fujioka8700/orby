@@ -1,5 +1,5 @@
 {
-    "activeFile": "",
+    "activeFile": "assets/maps/1st_stage.tmx",
     "expandedProjectPaths": [
         "assets",
         "assets/maps",
@@ -18,9 +18,12 @@
             "scale": 1,
             "selectedLayer": 2,
             "viewCenter": {
-                "x": 3177,
-                "y": 138
+                "x": 920.5,
+                "y": 152
             }
+        },
+        "assets/maps/1st_stage.tmx#Coin": {
+            "scaleInDock": 1
         },
         "assets/maps/1st_stage.tmx#Flag_animation": {
             "scaleInDock": 1
@@ -89,6 +92,7 @@
     "last.exportedFilePath": "//wsl.localhost/Ubuntu/home/fujij/orby/src/public/orby/assets/maps",
     "map.lastUsedExportFilter": "すべてのファイル (*)",
     "openFiles": [
+        "assets/maps/1st_stage.tmx"
     ],
     "project": "orby.tiled-project",
     "property.type": "bool",
