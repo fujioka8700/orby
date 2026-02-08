@@ -60,6 +60,11 @@ export const PLAYER_MISS_ASSET =
   "/orby/assets/graphics/characters/Player_miss.png";
 export const SPIDER_ASSET = "/orby/assets/graphics/enemies/Spider_1.png";
 
+/** ゴール旗（Goal_flag）：32x32px、5コマアニメーション */
+export const GOAL_FLAG_ASSET = "/orby/assets/graphics/items/Flag_animation.png";
+export const GOAL_FLAG_SIZE = 32;
+export const GOAL_FLAG_FRAMES = 5;
+
 /** 残機UI */
 export const LIVES_INITIAL = 2;
 export const UI_LIVES_POSITION = { x: 16, y: 16 } as const;
@@ -72,6 +77,33 @@ export const GAME_OVER_OVERLAY_ALPHA = 0.6;
 export const GAME_OVER_FONT_SIZE = "24px";
 export const GAME_OVER_CONTINUE_FONT_SIZE = "14px";
 export const GAME_OVER_CONTINUE_OFFSET_Y = 40;
+
+/** タイルマップのオブジェクトレイヤー名・オブジェクト名（Tiled と一致させる） */
+export const OBJECT_LAYER_NAME = "objectsLayer";
+export const GOAL_FLAG_OBJECT_NAMES = ["Goal_flag", "goal_flag"] as const;
+export const ENEMY_OBJECT_NAME = "Spider_1";
+
+/** メインシーン・ゲーム背景色 */
+export const SCENE_BACKGROUND_COLOR = "#2c3e50";
+
+/** 固定背景 */
+export const BACKGROUND_ASSET =
+  "/orby/assets/graphics/backgrounds/Forest_Background_0.png";
+
+/** Phaser で登録するアセット・テクスチャのキー（preload / create で統一利用） */
+export const ASSET_KEYS = {
+  TILEMAP: "tilemap",
+  PLAYER: "player",
+  SPIDER: "spider",
+  GOAL_FLAG: "goalFlag",
+  BACKGROUND: "background",
+  TILESET_GRASS: "tilesetGrass",
+  TILESET_PLATFORM: "tilesetPlatform",
+  TILESET_GRASS_ONEWAY: "tilesetGrassOneway",
+  TILESET_LEAF: "tilesetLeaf",
+  LIVES_ICON: "livesIcon",
+  PLAYER_MISS: "player_miss",
+} as const;
 
 export const TILEMAP_ASSETS = {
   tilesetGrass: "/orby/assets/graphics/environment/tilesets/Grass_Tileset.png",

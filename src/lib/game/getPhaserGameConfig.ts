@@ -1,7 +1,10 @@
-import { GAME_HEIGHT, GAME_WIDTH } from "@/lib/game/constants";
+import {
+  GAME_HEIGHT,
+  GAME_WIDTH,
+  SCENE_BACKGROUND_COLOR,
+} from "@/lib/game/constants";
 import { ARCADE_DEBUG } from "@/lib/game/phaserConfig";
 
-const BACKGROUND_COLOR = "#2c3e50";
 const GRAVITY_Y = 600;
 
 /**
@@ -11,14 +14,14 @@ const GRAVITY_Y = 600;
 export function getPhaserGameConfig(
   container: HTMLElement,
   SceneClass: typeof Phaser.Scene,
-  P: typeof Phaser
+  P: typeof Phaser,
 ): Phaser.Types.Core.GameConfig {
   return {
     type: P.AUTO,
     width: GAME_WIDTH,
     height: GAME_HEIGHT,
     parent: container,
-    backgroundColor: BACKGROUND_COLOR,
+    backgroundColor: SCENE_BACKGROUND_COLOR,
     scene: [SceneClass],
     scale: {
       mode: P.Scale.FIT,

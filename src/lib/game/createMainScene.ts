@@ -1,24 +1,33 @@
 /// <reference types="phaser" />
 import { createGameAnimations } from "@/lib/game/animations";
 import {
+  ASSET_KEYS,
+  BACKGROUND_ASSET,
+  ENEMY_OBJECT_NAME,
   GAME_CONSTANTS,
+  GOAL_FLAG_ASSET,
+  GOAL_FLAG_OBJECT_NAMES,
+  GOAL_FLAG_SIZE,
   LIVES_ICON_ASSET,
   LIVES_INITIAL,
+  OBJECT_LAYER_NAME,
   PLAYER_ASSET,
   PLAYER_MISS_ASSET,
+  SCENE_BACKGROUND_COLOR,
   SPIDER_ASSET,
   TILEMAP_ASSETS,
   UI_FONT_FAMILY,
   UI_LIVES_ICON_SIZE,
   UI_LIVES_POSITION,
 } from "@/lib/game/constants";
-import { createGameOverUI } from "@/lib/game/gameOverUI";
 import { updateEnemies as updateEnemiesAI } from "@/lib/game/enemyAI";
+import { createGameOverUI } from "@/lib/game/gameOverUI";
 import { globalControls } from "@/lib/game/globalControls";
 import {
   ARCADE_DEBUG,
   DEBUG,
   PLAYER_START_POSITION,
+  USE_IMAGE_BACKGROUND,
 } from "@/lib/game/phaserConfig";
 import type { EnemySprite } from "@/lib/game/types";
 
@@ -31,8 +40,11 @@ export function createMainScene(PhaserLib: typeof Phaser) {
     private platformLayer!: Phaser.Tilemaps.TilemapLayer;
     private enemies: EnemySprite[] = [];
     /** 敵の初期位置・向き（restart 用） */
-    private enemyStartPositions: { x: number; y: number; moveDirection: number }[] =
-      [];
+    private enemyStartPositions: {
+      x: number;
+      y: number;
+      moveDirection: number;
+    }[] = [];
     private wasJumpPressed = false;
     private livesCount = LIVES_INITIAL;
     private livesIcon: Phaser.GameObjects.Image | null = null;
@@ -52,6 +64,10 @@ export function createMainScene(PhaserLib: typeof Phaser) {
     private gameOverOverlay: Phaser.GameObjects.Rectangle | null = null;
     private gameOverText: Phaser.GameObjects.Text | null = null;
     private gameOverContinueText: Phaser.GameObjects.Text | null = null;
+    private goalFlagSprite: Phaser.GameObjects.Sprite | null = null;
+    private goalReached = false;
+    private goalText: Phaser.GameObjects.Text | null = null;
+    private background: Phaser.GameObjects.TileSprite | null = null;
     private readonly maxSpeed = GAME_CONSTANTS.MOVEMENT.MAX_SPEED;
     private readonly acceleration = GAME_CONSTANTS.MOVEMENT.ACCELERATION;
     private readonly deceleration = GAME_CONSTANTS.MOVEMENT.DECELERATION;
@@ -62,40 +78,61 @@ export function createMainScene(PhaserLib: typeof Phaser) {
     }
 
     preload() {
-      this.load.image("tilesetGrass", TILEMAP_ASSETS.tilesetGrass);
-      this.load.image("tilesetPlatform", TILEMAP_ASSETS.tilesetPlatform);
-      this.load.image("tilesetGrassOneway", TILEMAP_ASSETS.tilesetGrassOneway);
-      this.load.image("tilesetLeaf", TILEMAP_ASSETS.tilesetLeaf);
-      this.load.tilemapTiledJSON("tilemap", TILEMAP_ASSETS.tilemap);
-      this.load.spritesheet("player", PLAYER_ASSET, {
+      this.load.image(ASSET_KEYS.TILESET_GRASS, TILEMAP_ASSETS.tilesetGrass);
+      this.load.image(
+        ASSET_KEYS.TILESET_PLATFORM,
+        TILEMAP_ASSETS.tilesetPlatform,
+      );
+      this.load.image(
+        ASSET_KEYS.TILESET_GRASS_ONEWAY,
+        TILEMAP_ASSETS.tilesetGrassOneway,
+      );
+      this.load.image(ASSET_KEYS.TILESET_LEAF, TILEMAP_ASSETS.tilesetLeaf);
+      this.load.tilemapTiledJSON(ASSET_KEYS.TILEMAP, TILEMAP_ASSETS.tilemap);
+      this.load.spritesheet(ASSET_KEYS.PLAYER, PLAYER_ASSET, {
         frameWidth: GAME_CONSTANTS.PLAYER.FRAME_WIDTH,
         frameHeight: GAME_CONSTANTS.PLAYER.FRAME_HEIGHT,
       });
-      this.load.spritesheet("spider", SPIDER_ASSET, {
+      this.load.spritesheet(ASSET_KEYS.SPIDER, SPIDER_ASSET, {
         frameWidth: GAME_CONSTANTS.ENEMY.DISPLAY_WIDTH,
         frameHeight: GAME_CONSTANTS.ENEMY.DISPLAY_HEIGHT,
       });
-      this.load.image("livesIcon", LIVES_ICON_ASSET);
-      this.load.image("player_miss", PLAYER_MISS_ASSET);
+      this.load.image(ASSET_KEYS.LIVES_ICON, LIVES_ICON_ASSET);
+      this.load.image(ASSET_KEYS.PLAYER_MISS, PLAYER_MISS_ASSET);
+      this.load.spritesheet(ASSET_KEYS.GOAL_FLAG, GOAL_FLAG_ASSET, {
+        frameWidth: GOAL_FLAG_SIZE,
+        frameHeight: GOAL_FLAG_SIZE,
+      });
+      this.load.image(ASSET_KEYS.BACKGROUND, BACKGROUND_ASSET);
     }
 
     create() {
       const drawDebug = DEBUG && ARCADE_DEBUG;
       (this.physics.world as Phaser.Physics.Arcade.World).drawDebug = drawDebug;
-      this.cameras.main.setBackgroundColor("#2c3e50");
+      this.cameras.main.setBackgroundColor(SCENE_BACKGROUND_COLOR);
       this.setupTilemap();
+      if (this.shouldUseImageBackground()) {
+        this.setupBackground();
+      }
       this.setupPlayer();
       this.setupCamera();
       this.setupPlayerCollision();
       createGameAnimations(this);
+      this.setupGoalFlag();
+      this.setupPlayerGoalOverlap();
       this.setupEnemies();
       this.setupPlayerEnemyOverlap();
       this.setupInput();
       this.setupLivesUI();
     }
 
+    /** 背景を画像で表示するか（DEBUG=false のときは常に true） */
+    private shouldUseImageBackground(): boolean {
+      return !DEBUG || USE_IMAGE_BACKGROUND;
+    }
+
     private setupTilemap() {
-      this.map = this.make.tilemap({ key: "tilemap" });
+      this.map = this.make.tilemap({ key: ASSET_KEYS.TILEMAP });
       const tilesets = this.collectTilesets();
       if (tilesets.length === 0) {
         console.error("Failed to load tilesets");
@@ -120,15 +157,37 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       });
     }
 
+    private setupBackground() {
+      const mapWidth = this.map.widthInPixels;
+      const mapHeight = this.map.heightInPixels;
+      this.background = this.add.tileSprite(
+        mapWidth / 2,
+        mapHeight / 2,
+        mapWidth,
+        mapHeight,
+        ASSET_KEYS.BACKGROUND,
+      );
+      this.background.setDepth(-1);
+    }
+
     private collectTilesets(): Phaser.Tilemaps.Tileset[] {
       const tilesets: Phaser.Tilemaps.Tileset[] = [];
-      const grass = this.map.addTilesetImage("Grass_Tileset", "tilesetGrass");
-      const platform = this.map.addTilesetImage("Platform", "tilesetPlatform");
+      const grass = this.map.addTilesetImage(
+        "Grass_Tileset",
+        ASSET_KEYS.TILESET_GRASS,
+      );
+      const platform = this.map.addTilesetImage(
+        "Platform",
+        ASSET_KEYS.TILESET_PLATFORM,
+      );
       const grassOneway = this.map.addTilesetImage(
         "Grass_Oneway",
-        "tilesetGrassOneway"
+        ASSET_KEYS.TILESET_GRASS_ONEWAY,
       );
-      const leaf = this.map.addTilesetImage("Leaf_Tileset", "tilesetLeaf");
+      const leaf = this.map.addTilesetImage(
+        "Leaf_Tileset",
+        ASSET_KEYS.TILESET_LEAF,
+      );
       if (grass) tilesets.push(grass);
       if (platform) tilesets.push(platform);
       if (grassOneway) tilesets.push(grassOneway);
@@ -136,45 +195,114 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       return tilesets;
     }
 
+    /** オブジェクトレイヤーから名前が一致する最初のオブジェクトを返す */
+    private findMapObject(
+      ...names: string[]
+    ): Phaser.Types.Tilemaps.TiledObject | undefined {
+      const layer = this.map.getObjectLayer(OBJECT_LAYER_NAME);
+      if (!layer) return undefined;
+      return layer.objects.find((obj) => names.includes(obj.name ?? ""));
+    }
+
     /** DEBUG 時は phaserConfig.PLAYER_START_POSITION、そうでなければ "Player" */
     private getPlayerStartObjectName(): string {
       return DEBUG ? PLAYER_START_POSITION : "Player";
     }
 
+    private setupGoalFlag() {
+      const goalObj = this.findMapObject(...GOAL_FLAG_OBJECT_NAMES);
+      if (goalObj && goalObj.x !== undefined && goalObj.y !== undefined) {
+        const flag = this.add.sprite(
+          goalObj.x,
+          goalObj.y,
+          ASSET_KEYS.GOAL_FLAG,
+          0,
+        );
+        flag.setOrigin(0, 1);
+        flag.setDisplaySize(GOAL_FLAG_SIZE, GOAL_FLAG_SIZE);
+        flag.play("goal-flag");
+
+        this.physics.add.existing(flag, true);
+        const flagBody = flag.body as Phaser.Physics.Arcade.StaticBody;
+        // 当たり判定もスプライトと同じく左下基準。Y軸 +32px ずらす（ボディ左上を sprite.x, sprite.y に）
+        flagBody.setSize(GOAL_FLAG_SIZE, GOAL_FLAG_SIZE);
+        flagBody.setOffset(0, 0);
+
+        this.goalFlagSprite = flag;
+      }
+    }
+
+    private setupPlayerGoalOverlap() {
+      if (!this.goalFlagSprite) return;
+      this.physics.add.overlap(this.player, this.goalFlagSprite, () => {
+        this.onGoalReached();
+      });
+    }
+
+    private onGoalReached() {
+      if (this.goalReached) return;
+      this.goalReached = true;
+      this.showGoalText();
+    }
+
+    /** 画面上に "GOAL!!" をバウンスするアニメーションで表示（CodePen 風） */
+    private showGoalText() {
+      const cam = this.cameras.main;
+      this.goalText = this.add.text(cam.width / 2, cam.height / 2, "GOAL!!", {
+        fontFamily: UI_FONT_FAMILY,
+        fontSize: "48px",
+        color: "#ffeb3b",
+      });
+      this.goalText.setOrigin(0.5, 0.5);
+      this.goalText.setScrollFactor(0);
+      this.goalText.setAlpha(0);
+      this.goalText.setScale(0);
+
+      this.tweens.add({
+        targets: this.goalText,
+        alpha: 1,
+        scale: 1.2,
+        duration: 300,
+        ease: "Back.easeOut",
+        onComplete: () => {
+          if (!this.goalText) return;
+          this.tweens.add({
+            targets: this.goalText,
+            scale: 1,
+            duration: 200,
+            ease: "Bounce.easeOut",
+          });
+        },
+      });
+    }
+
     private setupPlayer() {
-      const objectLayer = this.map.getObjectLayer("objectsLayer");
       this.playerStartX = GAME_CONSTANTS.PLAYER.DEFAULT_START_X;
       this.playerStartY = GAME_CONSTANTS.PLAYER.DEFAULT_START_Y;
 
-      if (objectLayer) {
-        const objectName = this.getPlayerStartObjectName();
-        const playerObj = objectLayer.objects.find(
-          (obj) =>
-            obj.name === objectName ||
-            (objectName === "Player" && obj.name === "player")
-        );
-        if (
-          playerObj &&
-          playerObj.x !== undefined &&
-          playerObj.y !== undefined
-        ) {
-          this.playerStartX = playerObj.x;
-          this.playerStartY = playerObj.y;
-        }
+      const objectName = this.getPlayerStartObjectName();
+      const altNames =
+        objectName === "Player"
+          ? [objectName, ASSET_KEYS.PLAYER]
+          : [objectName];
+      const playerObj = this.findMapObject(...altNames);
+      if (playerObj && playerObj.x !== undefined && playerObj.y !== undefined) {
+        this.playerStartX = playerObj.x;
+        this.playerStartY = playerObj.y;
       }
 
       this.player = this.physics.add.sprite(
         this.playerStartX,
         this.playerStartY,
-        "player",
-        0
+        ASSET_KEYS.PLAYER,
+        0,
       );
 
       const playerBody = this.player.body as Phaser.Physics.Arcade.Body;
       this.applyPlayerBodySize(
         playerBody,
         GAME_CONSTANTS.PLAYER.ACTUAL_WIDTH,
-        GAME_CONSTANTS.PLAYER.ACTUAL_HEIGHT
+        GAME_CONSTANTS.PLAYER.ACTUAL_HEIGHT,
       );
       playerBody.setCollideWorldBounds(true);
     }
@@ -182,12 +310,12 @@ export function createMainScene(PhaserLib: typeof Phaser) {
     private applyPlayerBodySize(
       body: Phaser.Physics.Arcade.Body,
       width: number,
-      height: number
+      height: number,
     ) {
       body.setSize(width, height);
       body.setOffset(
         (GAME_CONSTANTS.PLAYER.FRAME_WIDTH - width) / 2,
-        (GAME_CONSTANTS.PLAYER.FRAME_HEIGHT - height) / 2
+        (GAME_CONSTANTS.PLAYER.FRAME_HEIGHT - height) / 2,
       );
     }
 
@@ -206,7 +334,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
         this.player,
         true,
         GAME_CONSTANTS.CAMERA.FOLLOW_LERP_X,
-        GAME_CONSTANTS.CAMERA.FOLLOW_LERP_Y
+        GAME_CONSTANTS.CAMERA.FOLLOW_LERP_Y,
       );
     }
 
@@ -238,18 +366,18 @@ export function createMainScene(PhaserLib: typeof Phaser) {
             return true;
           }
           return false;
-        }
+        },
       );
     }
 
     private setupEnemies() {
       this.enemies = [];
       this.enemyStartPositions = [];
-      const objectLayer = this.map.getObjectLayer("objectsLayer");
+      const objectLayer = this.map.getObjectLayer(OBJECT_LAYER_NAME);
       if (!objectLayer) return;
 
       const spiderObjects = objectLayer.objects.filter(
-        (obj) => obj.name === "Spider_1"
+        (obj) => obj.name === ENEMY_OBJECT_NAME,
       );
       const initialDirection = GAME_CONSTANTS.ENEMY.INITIAL_DIRECTION;
 
@@ -260,23 +388,23 @@ export function createMainScene(PhaserLib: typeof Phaser) {
           const enemy = this.physics.add.sprite(
             startX,
             startY,
-            "spider",
-            0
+            ASSET_KEYS.SPIDER,
+            0,
           ) as EnemySprite;
 
           enemy.setDisplaySize(
             GAME_CONSTANTS.ENEMY.DISPLAY_WIDTH,
-            GAME_CONSTANTS.ENEMY.DISPLAY_HEIGHT
+            GAME_CONSTANTS.ENEMY.DISPLAY_HEIGHT,
           );
 
           const enemyBody = enemy.body as Phaser.Physics.Arcade.Body;
           enemyBody.setSize(
             GAME_CONSTANTS.ENEMY.BODY_WIDTH,
-            GAME_CONSTANTS.ENEMY.BODY_HEIGHT
+            GAME_CONSTANTS.ENEMY.BODY_HEIGHT,
           );
           enemyBody.setOffset(
             GAME_CONSTANTS.ENEMY.OFFSET_X,
-            GAME_CONSTANTS.ENEMY.OFFSET_Y
+            GAME_CONSTANTS.ENEMY.OFFSET_Y,
           );
           enemyBody.setCollideWorldBounds(true);
 
@@ -343,11 +471,11 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       this.cameras.main.stopFollow();
       this.player.anims.stop();
       const playerBody = this.player.body as Phaser.Physics.Arcade.Body;
-      this.player.setTexture("player_miss", 0);
+      this.player.setTexture(ASSET_KEYS.PLAYER_MISS, 0);
       this.applyPlayerBodySize(
         playerBody,
         GAME_CONSTANTS.PLAYER.MISS_BODY_WIDTH,
-        GAME_CONSTANTS.PLAYER.MISS_BODY_HEIGHT
+        GAME_CONSTANTS.PLAYER.MISS_BODY_HEIGHT,
       );
       playerBody.setVelocity(0, GAME_CONSTANTS.PLAYER.MISS_BOUNCE_VELOCITY);
       playerBody.checkCollision.none = true;
@@ -357,7 +485,6 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       if (!this.missSequenceOnComplete) return;
       const playerBody = this.player.body as Phaser.Physics.Arcade.Body;
       playerBody.checkCollision.none = false;
-      const callback = this.missSequenceOnComplete;
       this.missSequenceOnComplete = null;
 
       if (this.wasMissWithZeroLives) {
@@ -388,9 +515,9 @@ export function createMainScene(PhaserLib: typeof Phaser) {
             () => {
               this.isPlayingMissSequence = false;
               this.respawnPlayer();
-            }
+            },
           );
-        }
+        },
       );
     }
 
@@ -404,11 +531,11 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       // ミス演出＋ぴょんと一回上に飛ばしてから落下
       this.player.anims.stop();
       const playerBody = this.player.body as Phaser.Physics.Arcade.Body;
-      this.player.setTexture("player_miss", 0);
+      this.player.setTexture(ASSET_KEYS.PLAYER_MISS, 0);
       this.applyPlayerBodySize(
         playerBody,
         GAME_CONSTANTS.PLAYER.MISS_BODY_WIDTH,
-        GAME_CONSTANTS.PLAYER.MISS_BODY_HEIGHT
+        GAME_CONSTANTS.PLAYER.MISS_BODY_HEIGHT,
       );
       playerBody.setVelocity(0, GAME_CONSTANTS.PLAYER.MISS_BOUNCE_VELOCITY);
       playerBody.checkCollision.none = true;
@@ -447,20 +574,20 @@ export function createMainScene(PhaserLib: typeof Phaser) {
             Phaser.Cameras.Scene2D.Events.FADE_IN_COMPLETE,
             () => {
               this.isInFallDeathTransition = false;
-            }
+            },
           );
-        }
+        },
       );
     }
 
     private restorePlayerAppearance() {
-      this.player.setTexture("player");
+      this.player.setTexture(ASSET_KEYS.PLAYER);
       this.player.setFrame(0);
       this.player.setFlipX(false);
       this.applyPlayerBodySize(
         this.player.body as Phaser.Physics.Arcade.Body,
         GAME_CONSTANTS.PLAYER.ACTUAL_WIDTH,
-        GAME_CONSTANTS.PLAYER.ACTUAL_HEIGHT
+        GAME_CONSTANTS.PLAYER.ACTUAL_HEIGHT,
       );
     }
 
@@ -542,7 +669,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
 
     private setupLivesUI() {
       const { x, y } = UI_LIVES_POSITION;
-      this.livesIcon = this.add.image(x, y, "livesIcon");
+      this.livesIcon = this.add.image(x, y, ASSET_KEYS.LIVES_ICON);
       this.livesIcon.setOrigin(0, 0);
       this.livesIcon.setDisplaySize(UI_LIVES_ICON_SIZE, UI_LIVES_ICON_SIZE);
       this.livesIcon.setScrollFactor(0);
@@ -562,8 +689,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       if (!this.player?.body) return;
 
       const playerBody = this.player.body as Phaser.Physics.Arcade.Body;
-      const cameraBottom =
-        this.cameras.main.scrollY + this.cameras.main.height;
+      const cameraBottom = this.cameras.main.scrollY + this.cameras.main.height;
 
       if (this.isInFallDeathTransition) {
         if (this.isWaitingForFallDeathOffScreen) {
@@ -605,7 +731,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
         const interval = GAME_CONSTANTS.PLAYER.INVINCIBLE_BLINK_INTERVAL_MS;
         const phase = Math.floor(this.time.now / interval) % 2;
         this.player.setAlpha(
-          phase === 0 ? 1 : GAME_CONSTANTS.PLAYER.INVINCIBLE_BLINK_ALPHA
+          phase === 0 ? 1 : GAME_CONSTANTS.PLAYER.INVINCIBLE_BLINK_ALPHA,
         );
       } else {
         this.player.setAlpha(1);
@@ -629,7 +755,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
         !onFloor
       ) {
         playerBody.setVelocityY(
-          playerBody.velocity.y * GAME_CONSTANTS.MOVEMENT.JUMP_CANCEL_FACTOR
+          playerBody.velocity.y * GAME_CONSTANTS.MOVEMENT.JUMP_CANCEL_FACTOR,
         );
       }
 
@@ -638,7 +764,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
 
     private handleMovement(
       playerBody: Phaser.Physics.Arcade.Body,
-      deltaTime: number
+      deltaTime: number,
     ) {
       const onFloor = playerBody.touching.down || playerBody.blocked.down;
       const leftInput = this.cursors.left.isDown || globalControls.left;
@@ -650,14 +776,14 @@ export function createMainScene(PhaserLib: typeof Phaser) {
           playerBody,
           onFloor,
           currentVelocityX,
-          deltaTime
+          deltaTime,
         );
       } else if (rightInput) {
         this.handleRightMovement(
           playerBody,
           onFloor,
           currentVelocityX,
-          deltaTime
+          deltaTime,
         );
       } else {
         this.handleNoInput(playerBody, onFloor, currentVelocityX, deltaTime);
@@ -668,7 +794,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       playerBody: Phaser.Physics.Arcade.Body,
       onFloor: boolean,
       currentVelocityX: number,
-      deltaTime: number
+      deltaTime: number,
     ) {
       const controlFactor = onFloor ? 1.0 : this.airControl;
       const targetVelocity = -this.maxSpeed * controlFactor;
@@ -679,7 +805,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
           : this.acceleration * this.airControl;
         const newVelocity = Math.max(
           currentVelocityX - accel * deltaTime,
-          targetVelocity
+          targetVelocity,
         );
         playerBody.setVelocityX(newVelocity);
       }
@@ -692,7 +818,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       playerBody: Phaser.Physics.Arcade.Body,
       onFloor: boolean,
       currentVelocityX: number,
-      deltaTime: number
+      deltaTime: number,
     ) {
       const controlFactor = onFloor ? 1.0 : this.airControl;
       const targetVelocity = this.maxSpeed * controlFactor;
@@ -703,7 +829,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
           : this.acceleration * this.airControl;
         const newVelocity = Math.min(
           currentVelocityX + accel * deltaTime,
-          targetVelocity
+          targetVelocity,
         );
         playerBody.setVelocityX(newVelocity);
       }
@@ -716,7 +842,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       playerBody: Phaser.Physics.Arcade.Body,
       onFloor: boolean,
       currentVelocityX: number,
-      deltaTime: number
+      deltaTime: number,
     ) {
       if (onFloor) {
         if (
@@ -741,7 +867,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
 
     private updatePlayerAnimation(
       playerBody: Phaser.Physics.Arcade.Body,
-      onFloor: boolean
+      onFloor: boolean,
     ) {
       if (onFloor) {
         this.player.play("walk", true);
