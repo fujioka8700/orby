@@ -3,9 +3,9 @@ import { GAME_CONSTANTS } from "@/lib/game/constants";
 import type { EnemySprite } from "@/lib/game/types";
 
 export function updateEnemies(
-  scene: Phaser.Scene,
+  _scene: Phaser.Scene,
   enemies: EnemySprite[],
-  platformLayer: Phaser.Tilemaps.TilemapLayer
+  platformLayer: Phaser.Tilemaps.TilemapLayer,
 ): void {
   for (const enemy of enemies) {
     const enemyBody = enemy.body as Phaser.Physics.Arcade.Body;
@@ -19,9 +19,7 @@ export function updateEnemies(
     if (hitWall || isGake) {
       flipEnemy(enemy, enemyBody);
     }
-    enemyBody.setVelocityX(
-      GAME_CONSTANTS.ENEMY.SPEED_X * enemy.moveDirection
-    );
+    enemyBody.setVelocityX(GAME_CONSTANTS.ENEMY.SPEED_X * enemy.moveDirection);
     if (!enemyBody.blocked.down) {
       enemyBody.setVelocityY(GAME_CONSTANTS.ENEMY.SPEED_Y);
     }
@@ -30,7 +28,7 @@ export function updateEnemies(
 
 function getEnemySensorPosition(
   enemy: EnemySprite,
-  enemyBody: Phaser.Physics.Arcade.Body
+  enemyBody: Phaser.Physics.Arcade.Body,
 ): { checkX: number; checkY: number } {
   const checkX =
     enemy.moveDirection > 0
@@ -43,7 +41,7 @@ function getEnemySensorPosition(
 function checkEnemyFloor(
   platformLayer: Phaser.Tilemaps.TilemapLayer,
   checkX: number,
-  checkY: number
+  checkY: number,
 ): boolean {
   const tileAhead = platformLayer.getTileAtWorldXY(checkX, checkY);
   return (
@@ -55,7 +53,7 @@ function checkEnemyFloor(
 
 function flipEnemy(
   enemy: EnemySprite,
-  enemyBody: Phaser.Physics.Arcade.Body
+  enemyBody: Phaser.Physics.Arcade.Body,
 ): void {
   enemy.moveDirection *= -1;
   enemy.setFlipX(enemy.moveDirection > 0);

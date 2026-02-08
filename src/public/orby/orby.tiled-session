@@ -16,10 +16,10 @@
                 3
             ],
             "scale": 1.5,
-            "selectedLayer": 1,
+            "selectedLayer": 2,
             "viewCenter": {
-                "x": 162,
-                "y": 226
+                "x": 3027,
+                "y": 188.66666666666666
             }
         },
         "assets/maps/1st_stage.tmx#Grass_Oneway": {
@@ -48,7 +48,13 @@
                 "y": 213.1254061078623
             }
         },
+        "assets/maps/1st_stage_tilemap.json#Grass_Oneway": {
+            "scaleInDock": 1
+        },
         "assets/maps/1st_stage_tilemap.json#Grass_Tileset": {
+            "scaleInDock": 1
+        },
+        "assets/maps/1st_stage_tilemap.json#Leaf_Tileset": {
             "scaleInDock": 1
         },
         "assets/maps/1st_stage_tilemap.json#Platform": {
@@ -85,15 +91,15 @@
     "project": "orby.tiled-project",
     "property.type": "bool",
     "recentFiles": [
-        "assets/maps/1st_stage.tmx",
         "assets/maps/1st_stage_tilemap.json",
+        "assets/maps/1st_stage.tmx",
         "assets/maps/Grass_Tileset.tsx",
         "sandbox/SuperMango - コピー.tmx",
         "assets/maps/Platform.tsx"
     ],
     "tileset.embedInMap": true,
     "tileset.tileSize": {
-        "height": 16,
-        "width": 16
+        "height": 32,
+        "width": 32
     }
 }
