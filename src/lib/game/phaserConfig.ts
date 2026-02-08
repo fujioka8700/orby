@@ -3,13 +3,13 @@
  */
 
 /** ゲーム全体のデバッグ。true のときデバッグモードが有効になる。 */
-export const DEBUG = false;
+export const DEBUG = true;
 
 /**
  * Arcade Physics のデバッグ描画。
  * true のとき physics.arcade.debug: true となり、当たり判定などが表示される。
  */
-export const ARCADE_DEBUG = true;
+export const ARCADE_DEBUG = false;
 
 /**
  * プレイヤーの初期位置（DEBUG 時のみ有効）。
@@ -27,3 +27,11 @@ export const PLAYER_START_POSITION: PlayerStartPosition = "Player";
  * DEBUG = false のときは常に画像を使用する。
  */
 export const USE_IMAGE_BACKGROUND = true;
+
+/**
+ * タイトル画面をスキップしてゲーム本編から始めるか（DEBUG 時のみ有効）。
+ * - true: タイトルをスキップし、ゲーム本編から開始
+ * - false: タイトル画面を表示し、タッチでゲーム開始
+ * DEBUG = false のときは常にタイトル画面から開始する。
+ */
+export const SKIP_TITLE_SCREEN = false;

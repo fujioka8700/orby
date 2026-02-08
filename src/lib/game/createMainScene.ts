@@ -23,13 +23,16 @@ import { updateEnemies as updateEnemiesAI } from "@/lib/game/enemyAI";
 import { createGameOverUI } from "@/lib/game/gameOverUI";
 import { globalControls } from "@/lib/game/globalControls";
 import { loadGameAssets } from "@/lib/game/loadGameAssets";
+import { createTitleScreen } from "@/lib/game/titleScreenUI";
 import {
   ARCADE_DEBUG,
   DEBUG,
   PLAYER_START_POSITION,
+  SKIP_TITLE_SCREEN,
   USE_IMAGE_BACKGROUND,
 } from "@/lib/game/phaserConfig";
 import type { EnemySprite } from "@/lib/game/types";
+import type { TitleScreenUI } from "@/lib/game/titleScreenUI";
 
 /** Phaser を動的 import した後に渡し、メインシーンクラスを取得する */
 export function createMainScene(PhaserLib: typeof Phaser) {
@@ -76,6 +79,9 @@ export function createMainScene(PhaserLib: typeof Phaser) {
     private readonly acceleration = GAME_CONSTANTS.MOVEMENT.ACCELERATION;
     private readonly deceleration = GAME_CONSTANTS.MOVEMENT.DECELERATION;
     private readonly airControl = GAME_CONSTANTS.MOVEMENT.AIR_CONTROL;
+    /** タイトル画面をタッチしてゲーム開始したか */
+    private gameStarted = false;
+    private titleScreenRef: TitleScreenUI | null = null;
 
     constructor() {
       super({ key: "GameScene" });
@@ -105,6 +111,37 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       this.setupPlayerEnemyOverlap();
       this.setupInput();
       this.setupLivesUI();
+      if (DEBUG && SKIP_TITLE_SCREEN) {
+        this.gameStarted = true;
+      } else {
+        this.setupTitleScreen();
+      }
+    }
+
+    /** タイトル画面を表示し、タッチで startTitleFadeOut を呼ぶ */
+    private setupTitleScreen() {
+      this.titleScreenRef = createTitleScreen(this);
+      this.input.once("pointerdown", this.startTitleFadeOut, this);
+    }
+
+    /** タイトルでタッチ時: フェードアウト → タイトル削除 → フェードイン → ゲーム開始 */
+    private startTitleFadeOut() {
+      const duration = GAME_CONSTANTS.CAMERA.FADE_DURATION_MS;
+      this.cameras.main.fadeOut(duration, 0, 0, 0);
+      this.cameras.main.once(
+        Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE,
+        () => {
+          this.titleScreenRef?.destroy();
+          this.titleScreenRef = null;
+          this.cameras.main.fadeIn(duration, 0, 0, 0);
+          this.cameras.main.once(
+            Phaser.Cameras.Scene2D.Events.FADE_IN_COMPLETE,
+            () => {
+              this.gameStarted = true;
+            },
+          );
+        },
+      );
     }
 
     /** 背景を画像で表示するか（DEBUG=false のときは常に true） */
@@ -716,6 +753,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
     }
 
     update() {
+      if (!this.gameStarted) return;
       if (this.isGameOver) return;
       if (!this.player?.body) return;
 

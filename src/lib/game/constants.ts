@@ -82,6 +82,16 @@ export const LIVES_ICON_FRAME_HEIGHT = 16;
 /** コイン枚数UI（残機の下に表示） */
 export const UI_COINS_OFFSET_Y = 8;
 export const COINS_UI_ASSET = "/orby/assets/graphics/ui/Coins_Ui.png";
+/** タイトル画面用画像 */
+export const TITLE_ASSET = "/orby/assets/graphics/ui/Title.jpg";
+/** タイトル画像の表示高さ（幅はアスペクト比に合わせて均等にスケール） */
+export const TITLE_DISPLAY_HEIGHT = 120;
+/** タイトル画像の上端Y位置 */
+export const TITLE_TOP_Y = 28;
+/** 「Touch to start」の点滅間隔（ms） */
+export const TITLE_BLINK_INTERVAL_MS = 1000;
+/** タイトル画面の背景色（黒） */
+export const TITLE_BACKGROUND_COLOR = 0x000000;
 export const UI_FONT_FAMILY = "Round9x13";
 /** 残機・コイン数値用テキストスタイル（共通） */
 export const UI_NUMBER_TEXT_STYLE = {
@@ -98,6 +108,17 @@ export const GAME_OVER_OVERLAY_ALPHA = 0.6;
 export const GAME_OVER_FONT_SIZE = "24px";
 export const GAME_OVER_CONTINUE_FONT_SIZE = "14px";
 export const GAME_OVER_CONTINUE_OFFSET_Y = 40;
+
+/** タイトル画面「Touch to start」のフォントサイズ */
+export const TITLE_TOUCH_FONT_SIZE = "14px";
+/** タイトル画像の下から「Touch to start」までのオフセット（1文分の余白） */
+export const TITLE_TOUCH_OFFSET_Y = 40;
+/** タイトル画面の著作権表示 */
+export const TITLE_COPYRIGHT_TEXT = "©2026 Wado";
+/** タイトル画面の著作権表示フォントサイズ */
+export const TITLE_COPYRIGHT_FONT_SIZE = "10px";
+/** 「Touch to start」の下から著作権表示までのオフセット（1文分の余白） */
+export const TITLE_COPYRIGHT_OFFSET_Y = 30;
 
 /** タイルマップのオブジェクトレイヤー名・オブジェクト名（Tiled と一致させる） */
 export const OBJECT_LAYER_NAME = "objectsLayer";
@@ -127,6 +148,7 @@ export const ASSET_KEYS = {
   COINS_UI: "coinsUi",
   LIVES_ICON: "livesIcon",
   PLAYER_MISS: "player_miss",
+  TITLE: "title",
 } as const;
 
 export const TILEMAP_ASSETS = {
