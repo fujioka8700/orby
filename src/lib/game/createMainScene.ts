@@ -2,27 +2,27 @@
 import { createGameAnimations } from "@/lib/game/animations";
 import {
   ASSET_KEYS,
-  BACKGROUND_ASSET,
+  COIN_OBJECT_NAME,
+  COIN_SIZE,
   ENEMY_OBJECT_NAME,
   GAME_CONSTANTS,
-  GOAL_FLAG_ASSET,
   GOAL_FLAG_OBJECT_NAMES,
   GOAL_FLAG_SIZE,
-  LIVES_ICON_ASSET,
   LIVES_INITIAL,
   OBJECT_LAYER_NAME,
-  PLAYER_ASSET,
   PLAYER_MISS_ASSET,
   SCENE_BACKGROUND_COLOR,
-  SPIDER_ASSET,
-  TILEMAP_ASSETS,
+  UI_COINS_OFFSET_Y,
   UI_FONT_FAMILY,
+  UI_ICON_OFFSET_Y,
   UI_LIVES_ICON_SIZE,
   UI_LIVES_POSITION,
+  UI_NUMBER_TEXT_STYLE,
 } from "@/lib/game/constants";
 import { updateEnemies as updateEnemiesAI } from "@/lib/game/enemyAI";
 import { createGameOverUI } from "@/lib/game/gameOverUI";
 import { globalControls } from "@/lib/game/globalControls";
+import { loadGameAssets } from "@/lib/game/loadGameAssets";
 import {
   ARCADE_DEBUG,
   DEBUG,
@@ -49,6 +49,9 @@ export function createMainScene(PhaserLib: typeof Phaser) {
     private livesCount = LIVES_INITIAL;
     private livesIcon: Phaser.GameObjects.Image | null = null;
     private livesText: Phaser.GameObjects.Text | null = null;
+    private coinCount = 0;
+    private coinsIcon: Phaser.GameObjects.Image | null = null;
+    private coinsText: Phaser.GameObjects.Text | null = null;
     private playerStartX: number = GAME_CONSTANTS.PLAYER.DEFAULT_START_X;
     private playerStartY: number = GAME_CONSTANTS.PLAYER.DEFAULT_START_Y;
     private invincibleUntil = 0;
@@ -68,6 +71,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
     private goalReached = false;
     private goalText: Phaser.GameObjects.Text | null = null;
     private background: Phaser.GameObjects.TileSprite | null = null;
+    private coins!: Phaser.GameObjects.Group;
     private readonly maxSpeed = GAME_CONSTANTS.MOVEMENT.MAX_SPEED;
     private readonly acceleration = GAME_CONSTANTS.MOVEMENT.ACCELERATION;
     private readonly deceleration = GAME_CONSTANTS.MOVEMENT.DECELERATION;
@@ -78,32 +82,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
     }
 
     preload() {
-      this.load.image(ASSET_KEYS.TILESET_GRASS, TILEMAP_ASSETS.tilesetGrass);
-      this.load.image(
-        ASSET_KEYS.TILESET_PLATFORM,
-        TILEMAP_ASSETS.tilesetPlatform,
-      );
-      this.load.image(
-        ASSET_KEYS.TILESET_GRASS_ONEWAY,
-        TILEMAP_ASSETS.tilesetGrassOneway,
-      );
-      this.load.image(ASSET_KEYS.TILESET_LEAF, TILEMAP_ASSETS.tilesetLeaf);
-      this.load.tilemapTiledJSON(ASSET_KEYS.TILEMAP, TILEMAP_ASSETS.tilemap);
-      this.load.spritesheet(ASSET_KEYS.PLAYER, PLAYER_ASSET, {
-        frameWidth: GAME_CONSTANTS.PLAYER.FRAME_WIDTH,
-        frameHeight: GAME_CONSTANTS.PLAYER.FRAME_HEIGHT,
-      });
-      this.load.spritesheet(ASSET_KEYS.SPIDER, SPIDER_ASSET, {
-        frameWidth: GAME_CONSTANTS.ENEMY.DISPLAY_WIDTH,
-        frameHeight: GAME_CONSTANTS.ENEMY.DISPLAY_HEIGHT,
-      });
-      this.load.image(ASSET_KEYS.LIVES_ICON, LIVES_ICON_ASSET);
-      this.load.image(ASSET_KEYS.PLAYER_MISS, PLAYER_MISS_ASSET);
-      this.load.spritesheet(ASSET_KEYS.GOAL_FLAG, GOAL_FLAG_ASSET, {
-        frameWidth: GOAL_FLAG_SIZE,
-        frameHeight: GOAL_FLAG_SIZE,
-      });
-      this.load.image(ASSET_KEYS.BACKGROUND, BACKGROUND_ASSET);
+      loadGameAssets(this);
     }
 
     create() {
@@ -119,6 +98,8 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       this.setupPlayerCollision();
       createGameAnimations(this);
       this.setupGoalFlag();
+      this.setupCoins();
+      this.setupPlayerCoinOverlap();
       this.setupPlayerGoalOverlap();
       this.setupEnemies();
       this.setupPlayerEnemyOverlap();
@@ -230,6 +211,37 @@ export function createMainScene(PhaserLib: typeof Phaser) {
 
         this.goalFlagSprite = flag;
       }
+    }
+
+    private setupCoins() {
+      if (this.coins) {
+        this.coins.clear(true, true);
+      } else {
+        this.coins = this.add.group();
+      }
+      const objectLayer = this.map.getObjectLayer(OBJECT_LAYER_NAME);
+      if (!objectLayer) return;
+      const coinObjects = objectLayer.objects.filter(
+        (obj) => obj.name === COIN_OBJECT_NAME,
+      );
+      for (const obj of coinObjects) {
+        if (obj.x === undefined || obj.y === undefined) continue;
+        const coin = this.add.image(obj.x, obj.y - COIN_SIZE, ASSET_KEYS.COIN);
+        coin.setOrigin(0, 0);
+        coin.setDisplaySize(COIN_SIZE, COIN_SIZE);
+        this.physics.add.existing(coin, true);
+        const body = coin.body as Phaser.Physics.Arcade.StaticBody;
+        body.setSize(COIN_SIZE, COIN_SIZE);
+        this.coins.add(coin);
+      }
+    }
+
+    private setupPlayerCoinOverlap() {
+      this.physics.add.overlap(this.player, this.coins, (_player, coin) => {
+        (coin as Phaser.GameObjects.GameObject).destroy();
+        this.coinCount++;
+        this.updateCoinsText();
+      });
     }
 
     private setupPlayerGoalOverlap() {
@@ -465,6 +477,12 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       }
     }
 
+    private updateCoinsText() {
+      if (this.coinsText) {
+        this.coinsText.setText(String(this.coinCount).padStart(2, "0"));
+      }
+    }
+
     private playMissSequence(onComplete: () => void) {
       this.isPlayingMissSequence = true;
       this.missSequenceOnComplete = onComplete;
@@ -481,19 +499,10 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       playerBody.checkCollision.none = true;
     }
 
-    private finishMissSequence() {
-      if (!this.missSequenceOnComplete) return;
-      const playerBody = this.player.body as Phaser.Physics.Arcade.Body;
-      playerBody.checkCollision.none = false;
-      this.missSequenceOnComplete = null;
-
-      if (this.wasMissWithZeroLives) {
-        this.isPlayingMissSequence = false;
-        this.showGameOver();
-        return;
-      }
-
+    /** フェードアウト→復帰処理→フェードインの共通処理。onFadeInComplete はフェードイン完了時に呼ぶ */
+    private performRespawnAfterFadeOut(onFadeInComplete: () => void) {
       const duration = GAME_CONSTANTS.CAMERA.FADE_DURATION_MS;
+      const playerBody = this.player.body as Phaser.Physics.Arcade.Body;
       this.cameras.main.fadeOut(duration, 0, 0, 0);
       this.cameras.main.once(
         Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE,
@@ -512,13 +521,28 @@ export function createMainScene(PhaserLib: typeof Phaser) {
           this.cameras.main.fadeIn(duration, 0, 0, 0);
           this.cameras.main.once(
             Phaser.Cameras.Scene2D.Events.FADE_IN_COMPLETE,
-            () => {
-              this.isPlayingMissSequence = false;
-              this.respawnPlayer();
-            },
+            onFadeInComplete,
           );
         },
       );
+    }
+
+    private finishMissSequence() {
+      if (!this.missSequenceOnComplete) return;
+      const playerBody = this.player.body as Phaser.Physics.Arcade.Body;
+      playerBody.checkCollision.none = false;
+      this.missSequenceOnComplete = null;
+
+      if (this.wasMissWithZeroLives) {
+        this.isPlayingMissSequence = false;
+        this.showGameOver();
+        return;
+      }
+
+      this.performRespawnAfterFadeOut(() => {
+        this.isPlayingMissSequence = false;
+        this.respawnPlayer();
+      });
     }
 
     /** 地面がないところへ落下したときの専用経路（ミス演出→ぴょん→落下→画面外でフェード） */
@@ -553,31 +577,9 @@ export function createMainScene(PhaserLib: typeof Phaser) {
         return;
       }
 
-      const duration = GAME_CONSTANTS.CAMERA.FADE_DURATION_MS;
-      this.cameras.main.fadeOut(duration, 0, 0, 0);
-      this.cameras.main.once(
-        Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE,
-        () => {
-          if (this.livesCount > 0) {
-            this.livesCount--;
-            this.updateLivesText();
-          }
-          this.restorePlayerAppearance();
-          this.player.setPosition(this.playerStartX, this.playerStartY);
-          playerBody.setVelocity(0, 0);
-          this.resetEnemiesToStartPositions();
-          this.startCameraFollow();
-          this.invincibleUntil =
-            this.time.now + GAME_CONSTANTS.PLAYER.INVINCIBLE_DURATION_MS;
-          this.cameras.main.fadeIn(duration, 0, 0, 0);
-          this.cameras.main.once(
-            Phaser.Cameras.Scene2D.Events.FADE_IN_COMPLETE,
-            () => {
-              this.isInFallDeathTransition = false;
-            },
-          );
-        },
-      );
+      this.performRespawnAfterFadeOut(() => {
+        this.isInFallDeathTransition = false;
+      });
     }
 
     private restorePlayerAppearance() {
@@ -654,6 +656,10 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       this.livesCount = LIVES_INITIAL;
       this.updateLivesText();
 
+      this.coinCount = 0;
+      this.updateCoinsText();
+      this.setupCoins();
+
       this.restorePlayerAppearance();
       this.player.setVisible(true);
       this.player.setPosition(this.playerStartX, this.playerStartY);
@@ -669,19 +675,44 @@ export function createMainScene(PhaserLib: typeof Phaser) {
 
     private setupLivesUI() {
       const { x, y } = UI_LIVES_POSITION;
-      this.livesIcon = this.add.image(x, y, ASSET_KEYS.LIVES_ICON);
+      const livesIconY = y + UI_ICON_OFFSET_Y;
+      this.livesIcon = this.add.image(
+        x,
+        livesIconY,
+        ASSET_KEYS.LIVES_ICON,
+        0,
+      );
       this.livesIcon.setOrigin(0, 0);
       this.livesIcon.setDisplaySize(UI_LIVES_ICON_SIZE, UI_LIVES_ICON_SIZE);
       this.livesIcon.setScrollFactor(0);
 
       const textX = x + UI_LIVES_ICON_SIZE + 4;
-      this.livesText = this.add.text(textX, y, String(this.livesCount), {
-        fontFamily: UI_FONT_FAMILY,
-        fontSize: "16px",
-        color: "#ffffff",
-      });
+      this.livesText = this.add.text(
+        textX,
+        y,
+        String(this.livesCount),
+        { ...UI_NUMBER_TEXT_STYLE },
+      );
+      this.livesText.setStyle({ stroke: "#000000", strokeThickness: 2 });
       this.livesText.setOrigin(0, 0);
       this.livesText.setScrollFactor(0);
+
+      const coinsY = y + UI_LIVES_ICON_SIZE + UI_COINS_OFFSET_Y;
+      const coinsIconY = coinsY + UI_ICON_OFFSET_Y;
+      this.coinsIcon = this.add.image(x, coinsIconY, ASSET_KEYS.COINS_UI);
+      this.coinsIcon.setOrigin(0, 0);
+      this.coinsIcon.setDisplaySize(UI_LIVES_ICON_SIZE, UI_LIVES_ICON_SIZE);
+      this.coinsIcon.setScrollFactor(0);
+
+      this.coinsText = this.add.text(
+        textX,
+        coinsY,
+        String(this.coinCount).padStart(2, "0"),
+        { ...UI_NUMBER_TEXT_STYLE },
+      );
+      this.coinsText.setStyle({ stroke: "#000000", strokeThickness: 2 });
+      this.coinsText.setOrigin(0, 0);
+      this.coinsText.setScrollFactor(0);
     }
 
     update() {

@@ -1,9 +1,9 @@
 {
-    "activeFile": "assets/maps/1st_stage.tmx",
+    "activeFile": "",
     "expandedProjectPaths": [
+        "assets",
         "assets/maps",
         ".",
-        "assets",
         "sandbox"
     ],
     "fileStates": {
@@ -15,12 +15,15 @@
             "expandedObjectLayers": [
                 3
             ],
-            "scale": 1.5,
+            "scale": 1,
             "selectedLayer": 2,
             "viewCenter": {
-                "x": 3027,
-                "y": 188.66666666666666
+                "x": 3177,
+                "y": 138
             }
+        },
+        "assets/maps/1st_stage.tmx#Flag_animation": {
+            "scaleInDock": 1
         },
         "assets/maps/1st_stage.tmx#Grass_Oneway": {
             "scaleInDock": 1,
@@ -86,20 +89,19 @@
     "last.exportedFilePath": "//wsl.localhost/Ubuntu/home/fujij/orby/src/public/orby/assets/maps",
     "map.lastUsedExportFilter": "すべてのファイル (*)",
     "openFiles": [
-        "assets/maps/1st_stage.tmx"
     ],
     "project": "orby.tiled-project",
     "property.type": "bool",
     "recentFiles": [
-        "assets/maps/1st_stage_tilemap.json",
         "assets/maps/1st_stage.tmx",
+        "assets/maps/1st_stage_tilemap.json",
         "assets/maps/Grass_Tileset.tsx",
         "sandbox/SuperMango - コピー.tmx",
         "assets/maps/Platform.tsx"
     ],
     "tileset.embedInMap": true,
     "tileset.tileSize": {
-        "height": 32,
-        "width": 32
+        "height": 16,
+        "width": 16
     }
 }
