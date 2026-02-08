@@ -3,13 +3,13 @@
  */
 
 /** ゲーム全体のデバッグ。true のときデバッグモードが有効になる。 */
-export const DEBUG = true;
+export const DEBUG = false;
 
 /**
  * Arcade Physics のデバッグ描画。
  * true のとき physics.arcade.debug: true となり、当たり判定などが表示される。
  */
-export const ARCADE_DEBUG = false;
+export const ARCADE_DEBUG = true;
 
 /**
  * プレイヤーの初期位置（DEBUG 時のみ有効）。
