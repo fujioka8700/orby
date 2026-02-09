@@ -3,7 +3,7 @@
  */
 
 /** ゲーム全体のデバッグ。true のときデバッグモードが有効になる。 */
-export const DEBUG = true;
+export const DEBUG = false;
 
 /**
  * Arcade Physics のデバッグ描画。
@@ -18,7 +18,7 @@ export const ARCADE_DEBUG = false;
  * DEBUG = false のときは常に "Player" が使われる。
  */
 export type PlayerStartPosition = "Player" | "Player_before_goal";
-export const PLAYER_START_POSITION: PlayerStartPosition = "Player";
+export const PLAYER_START_POSITION: PlayerStartPosition = "Player_before_goal";
 
 /**
  * 背景を画像で表示するか、灰色にするか（DEBUG 時のみ有効）。
@@ -34,4 +34,13 @@ export const USE_IMAGE_BACKGROUND = true;
  * - false: タイトル画面を表示し、タッチでゲーム開始
  * DEBUG = false のときは常にタイトル画面から開始する。
  */
-export const SKIP_TITLE_SCREEN = false;
+export const SKIP_TITLE_SCREEN = true;
+
+/**
+ * 単一画像用の画面にする（DEBUG 時のみ有効。他デバッグ項目は無視）。
+ * DEBUG = true かつ true のとき、ゲームは作らず灰色の画面だけを表示する。
+ * DEBUG = false のときは常に通常ゲームが動作する。
+ */
+export const CREATE_A_SINGLE_IMAGE = false;
+/** CREATE_A_SINGLE_IMAGE 時の背景色（灰色） */
+export const CREATE_A_SINGLE_IMAGE_BACKGROUND = 0x808080;

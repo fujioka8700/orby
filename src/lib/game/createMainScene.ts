@@ -5,11 +5,14 @@ import {
   COIN_OBJECT_NAME,
   COIN_SIZE,
   ENEMY_OBJECT_NAME,
+  GAME_CLEAR_FADE_DURATION_MS,
+  GAME_CLEAR_GOAL_DISPLAY_MS,
   GAME_CONSTANTS,
   GOAL_FLAG_OBJECT_NAMES,
   GOAL_FLAG_SIZE,
   LIVES_INITIAL,
   OBJECT_LAYER_NAME,
+  PLAYER_GAME_COMPLETE_ASSET,
   PLAYER_MISS_ASSET,
   SCENE_BACKGROUND_COLOR,
   UI_COINS_OFFSET_Y,
@@ -20,18 +23,21 @@ import {
   UI_NUMBER_TEXT_STYLE,
 } from "@/lib/game/constants";
 import { updateEnemies as updateEnemiesAI } from "@/lib/game/enemyAI";
+import { createGameClearScreen } from "@/lib/game/gameClearUI";
 import { createGameOverUI } from "@/lib/game/gameOverUI";
 import { globalControls } from "@/lib/game/globalControls";
 import { loadGameAssets } from "@/lib/game/loadGameAssets";
 import { createTitleScreen } from "@/lib/game/titleScreenUI";
 import {
   ARCADE_DEBUG,
+  CREATE_A_SINGLE_IMAGE,
   DEBUG,
   PLAYER_START_POSITION,
   SKIP_TITLE_SCREEN,
   USE_IMAGE_BACKGROUND,
 } from "@/lib/game/phaserConfig";
 import type { EnemySprite } from "@/lib/game/types";
+import type { GameClearScreen } from "@/lib/game/gameClearUI";
 import type { TitleScreenUI } from "@/lib/game/titleScreenUI";
 
 /** Phaser を動的 import した後に渡し、メインシーンクラスを取得する */
@@ -73,6 +79,9 @@ export function createMainScene(PhaserLib: typeof Phaser) {
     private goalFlagSprite: Phaser.GameObjects.Sprite | null = null;
     private goalReached = false;
     private goalText: Phaser.GameObjects.Text | null = null;
+    private isGameClear = false;
+    /** 本番・CREATE_A_SINGLE_IMAGE 共通のゲームクリア画面（update/destroy 用） */
+    private gameClearScreenRef: GameClearScreen | null = null;
     private background: Phaser.GameObjects.TileSprite | null = null;
     private coins!: Phaser.GameObjects.Group;
     private readonly maxSpeed = GAME_CONSTANTS.MOVEMENT.MAX_SPEED;
@@ -88,10 +97,22 @@ export function createMainScene(PhaserLib: typeof Phaser) {
     }
 
     preload() {
+      if (CREATE_A_SINGLE_IMAGE && DEBUG) {
+        this.load.image(
+          ASSET_KEYS.PLAYER_GAME_COMPLETE,
+          PLAYER_GAME_COMPLETE_ASSET,
+        );
+        return;
+      }
       loadGameAssets(this);
     }
 
     create() {
+      if (CREATE_A_SINGLE_IMAGE && DEBUG) {
+        this.createSingleImageMode();
+        return;
+      }
+      this.resetSceneStateForRestart();
       const drawDebug = DEBUG && ARCADE_DEBUG;
       (this.physics.world as Phaser.Physics.Arcade.World).drawDebug = drawDebug;
       this.cameras.main.setBackgroundColor(SCENE_BACKGROUND_COLOR);
@@ -116,6 +137,19 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       } else {
         this.setupTitleScreen();
       }
+    }
+
+    /** CREATE_A_SINGLE_IMAGE 時の単一画像・クリア画面表示 */
+    private createSingleImageMode() {
+      this.gameClearScreenRef = createGameClearScreen(this);
+    }
+
+    /** シーン再開時（GAME CLEAR→タイトルから戻った後）にゲームロジック・物理が正しく動くようリセット */
+    private resetSceneStateForRestart() {
+      this.goalReached = false;
+      this.isGameClear = false;
+      this.gameClearScreenRef = null;
+      this.physics.resume();
     }
 
     /** タイトル画面を表示し、タッチで startTitleFadeOut を呼ぶ */
@@ -251,11 +285,8 @@ export function createMainScene(PhaserLib: typeof Phaser) {
     }
 
     private setupCoins() {
-      if (this.coins) {
-        this.coins.clear(true, true);
-      } else {
-        this.coins = this.add.group();
-      }
+      // シーン再開後は前回の Group は破棄済みのため、常に新規作成する
+      this.coins = this.add.group();
       const objectLayer = this.map.getObjectLayer(OBJECT_LAYER_NAME);
       if (!objectLayer) return;
       const coinObjects = objectLayer.objects.filter(
@@ -291,10 +322,14 @@ export function createMainScene(PhaserLib: typeof Phaser) {
     private onGoalReached() {
       if (this.goalReached) return;
       this.goalReached = true;
+      this.physics.pause();
       this.showGoalText();
+      this.time.delayedCall(GAME_CLEAR_GOAL_DISPLAY_MS, () =>
+        this.startTransitionToGameClear(),
+      );
     }
 
-    /** 画面上に "GOAL!!" をバウンスするアニメーションで表示（CodePen 風） */
+    /** 画面上に "GOAL!!" をバウンスアニメーションで表示 */
     private showGoalText() {
       const cam = this.cameras.main;
       this.goalText = this.add.text(cam.width / 2, cam.height / 2, "GOAL!!", {
@@ -321,6 +356,28 @@ export function createMainScene(PhaserLib: typeof Phaser) {
             duration: 200,
             ease: "Bounce.easeOut",
           });
+        },
+      });
+    }
+
+    /** GOAL!! 表示の 1.5 秒後にフェードアウトし、完了後にゲームクリア画面を表示してフェードイン */
+    private startTransitionToGameClear() {
+      const cam = this.cameras.main;
+      cam.once("camerafadeoutcomplete", () => {
+        this.showGameClearScreen();
+        cam.fadeIn(GAME_CLEAR_FADE_DURATION_MS);
+      });
+      cam.fadeOut(GAME_CLEAR_FADE_DURATION_MS);
+    }
+
+    private showGameClearScreen() {
+      this.isGameClear = true;
+      this.player.setVisible(false);
+      this.cameras.main.stopFollow();
+      this.gameClearScreenRef = createGameClearScreen(this, {
+        onTouchToTitle: () => {
+          // シーン再開でタイトル画面を表示し、プレイヤー・敵などを初期状態に戻す
+          this.scene.restart();
         },
       });
     }
@@ -713,23 +770,15 @@ export function createMainScene(PhaserLib: typeof Phaser) {
     private setupLivesUI() {
       const { x, y } = UI_LIVES_POSITION;
       const livesIconY = y + UI_ICON_OFFSET_Y;
-      this.livesIcon = this.add.image(
-        x,
-        livesIconY,
-        ASSET_KEYS.LIVES_ICON,
-        0,
-      );
+      this.livesIcon = this.add.image(x, livesIconY, ASSET_KEYS.LIVES_ICON, 0);
       this.livesIcon.setOrigin(0, 0);
       this.livesIcon.setDisplaySize(UI_LIVES_ICON_SIZE, UI_LIVES_ICON_SIZE);
       this.livesIcon.setScrollFactor(0);
 
       const textX = x + UI_LIVES_ICON_SIZE + 4;
-      this.livesText = this.add.text(
-        textX,
-        y,
-        String(this.livesCount),
-        { ...UI_NUMBER_TEXT_STYLE },
-      );
+      this.livesText = this.add.text(textX, y, String(this.livesCount), {
+        ...UI_NUMBER_TEXT_STYLE,
+      });
       this.livesText.setStyle({ stroke: "#000000", strokeThickness: 2 });
       this.livesText.setOrigin(0, 0);
       this.livesText.setScrollFactor(0);
@@ -753,8 +802,17 @@ export function createMainScene(PhaserLib: typeof Phaser) {
     }
 
     update() {
+      if (CREATE_A_SINGLE_IMAGE && DEBUG) {
+        this.gameClearScreenRef?.update();
+        return;
+      }
       if (!this.gameStarted) return;
       if (this.isGameOver) return;
+      if (this.goalReached && !this.isGameClear) return;
+      if (this.isGameClear) {
+        this.gameClearScreenRef?.update();
+        return;
+      }
       if (!this.player?.body) return;
 
       const playerBody = this.player.body as Phaser.Physics.Arcade.Body;

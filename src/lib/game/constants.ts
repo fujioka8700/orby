@@ -109,6 +109,11 @@ export const GAME_OVER_FONT_SIZE = "24px";
 export const GAME_OVER_CONTINUE_FONT_SIZE = "14px";
 export const GAME_OVER_CONTINUE_OFFSET_Y = 40;
 
+/** ゲームクリア：GOAL!! 表示時間（ms）、その後フェードでクリア画面へ */
+export const GAME_CLEAR_GOAL_DISPLAY_MS = 1500;
+/** ゲームクリア：GOAL!! → クリア画面のフェード時間（ms） */
+export const GAME_CLEAR_FADE_DURATION_MS = 400;
+
 /** タイトル画面「Touch to start」のフォントサイズ */
 export const TITLE_TOUCH_FONT_SIZE = "14px";
 /** タイトル画像の下から「Touch to start」までのオフセット（1文分の余白） */
@@ -133,6 +138,10 @@ export const SCENE_BACKGROUND_COLOR = "#2c3e50";
 export const BACKGROUND_ASSET =
   "/orby/assets/graphics/backgrounds/Forest_Background_0.png";
 
+/** ゲームクリア画面用画像（CREATE_A_SINGLE_IMAGE 時の仮表示） */
+export const PLAYER_GAME_COMPLETE_ASSET =
+  "/orby/assets/graphics/characters/Player_game_complete.png";
+
 /** Phaser で登録するアセット・テクスチャのキー（preload / create で統一利用） */
 export const ASSET_KEYS = {
   TILEMAP: "tilemap",
@@ -149,6 +158,7 @@ export const ASSET_KEYS = {
   LIVES_ICON: "livesIcon",
   PLAYER_MISS: "player_miss",
   TITLE: "title",
+  PLAYER_GAME_COMPLETE: "playerGameComplete",
 } as const;
 
 export const TILEMAP_ASSETS = {

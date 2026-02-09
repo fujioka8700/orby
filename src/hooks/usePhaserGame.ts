@@ -2,6 +2,7 @@
 
 import { type RefObject, useEffect } from "react";
 import { createMainScene } from "@/lib/game/createMainScene";
+import { UI_FONT_FAMILY } from "@/lib/game/constants";
 import { getPhaserGameConfig } from "@/lib/game/getPhaserGameConfig";
 
 export function usePhaserGame(containerRef: RefObject<HTMLDivElement | null>) {
@@ -12,6 +13,10 @@ export function usePhaserGame(containerRef: RefObject<HTMLDivElement | null>) {
     let game: import("phaser").Game | null = null;
 
     const init = async () => {
+      if (typeof document !== "undefined" && document.fonts?.load) {
+        await document.fonts.load(`16px "${UI_FONT_FAMILY}"`);
+        await document.fonts.ready;
+      }
       const P = (await import("phaser")).default;
       const GameScene = createMainScene(P);
       game = new P.Game(getPhaserGameConfig(container, GameScene, P));
