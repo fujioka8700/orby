@@ -1,5 +1,16 @@
 /// <reference types="phaser" />
-import { ASSET_KEYS, UI_FONT_FAMILY } from "@/lib/game/constants";
+import {
+  ASSET_KEYS,
+  GAME_CLEAR_BG_GRADIENT_BOTTOM,
+  GAME_CLEAR_BG_GRADIENT_TOP,
+  GAME_CLEAR_DEPTH_BG,
+  GAME_CLEAR_DEPTH_IMAGE,
+  GAME_CLEAR_DEPTH_TEXT,
+  GAME_CLEAR_TITLE_TEXT,
+  GAME_CLEAR_TOUCH_TO_TITLE_TEXT,
+  GAME_CLEAR_UI_GAP,
+  UI_FONT_FAMILY,
+} from "@/lib/game/constants";
 import { createGameClearConfetti } from "@/lib/game/gameClearConfetti";
 import type { GameClearConfetti } from "@/lib/game/gameClearConfetti";
 
@@ -27,30 +38,35 @@ export function createGameClearScreen(
   const centerY = h / 2;
 
   const gradientBg = scene.add.graphics();
-  gradientBg.fillGradientStyle(0x2a5a8f, 0x2a5a8f, 0x87ceeb, 0x87ceeb, 1);
+  gradientBg.fillGradientStyle(
+    GAME_CLEAR_BG_GRADIENT_TOP,
+    GAME_CLEAR_BG_GRADIENT_TOP,
+    GAME_CLEAR_BG_GRADIENT_BOTTOM,
+    GAME_CLEAR_BG_GRADIENT_BOTTOM,
+    1,
+  );
   gradientBg.fillRect(0, 0, w, h);
   gradientBg.setScrollFactor(0);
-  /** アクションゲーム部分の上に全面で重ねて、ゲーム世界を見えなくする */
-  gradientBg.setDepth(999);
+  gradientBg.setDepth(GAME_CLEAR_DEPTH_BG);
 
   const img = scene.add.image(centerX, centerY, ASSET_KEYS.PLAYER_GAME_COMPLETE);
   img.setOrigin(0.5);
   img.setScrollFactor(0);
-  img.setDepth(1000);
+  img.setDepth(GAME_CLEAR_DEPTH_IMAGE);
 
-  const gameClearText = scene.add.text(centerX, 0, "GAME CLEAR", {
+  const gameClearText = scene.add.text(centerX, 0, GAME_CLEAR_TITLE_TEXT, {
     fontFamily: UI_FONT_FAMILY,
     fontSize: "32px",
     color: "#ffff00",
   });
   gameClearText.setOrigin(0.5);
   gameClearText.setScrollFactor(0);
-  gameClearText.setDepth(1001);
+  gameClearText.setDepth(GAME_CLEAR_DEPTH_TEXT);
 
   const touchToTitleText = scene.add.text(
     centerX,
     0,
-    "Touch to go to the title.",
+    GAME_CLEAR_TOUCH_TO_TITLE_TEXT,
     {
       fontFamily: "sans-serif",
       fontSize: "16px",
@@ -59,17 +75,16 @@ export function createGameClearScreen(
   );
   touchToTitleText.setOrigin(0.5);
   touchToTitleText.setScrollFactor(0);
-  touchToTitleText.setDepth(1001);
+  touchToTitleText.setDepth(GAME_CLEAR_DEPTH_TEXT);
 
   const imgH = img.displayHeight;
-  const gap = 16;
   gameClearText.setPosition(
     centerX,
-    centerY - imgH / 2 - gap - gameClearText.displayHeight / 2,
+    centerY - imgH / 2 - GAME_CLEAR_UI_GAP - gameClearText.displayHeight / 2,
   );
   touchToTitleText.setPosition(
     centerX,
-    centerY + imgH / 2 + gap + touchToTitleText.displayHeight / 2,
+    centerY + imgH / 2 + GAME_CLEAR_UI_GAP + touchToTitleText.displayHeight / 2,
   );
 
   const confetti: GameClearConfetti = createGameClearConfetti(scene, w, h);

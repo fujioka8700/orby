@@ -106,18 +106,55 @@ export const UI_NUMBER_TEXT_STYLE = {
 /** GAME OVER 表示 */
 export const GAME_OVER_OVERLAY_ALPHA = 0.6;
 export const GAME_OVER_FONT_SIZE = "24px";
+export const GAME_OVER_TEXT = "GAME OVER";
 export const GAME_OVER_CONTINUE_FONT_SIZE = "14px";
+export const GAME_OVER_CONTINUE_TEXT = "Touch to continue";
 export const GAME_OVER_CONTINUE_OFFSET_Y = 40;
 
+/** ゲームクリア：ゴール到達時表示テキスト */
+export const GAME_CLEAR_GOAL_TEXT = "GOAL!!";
 /** ゲームクリア：GOAL!! 表示時間（ms）、その後フェードでクリア画面へ */
 export const GAME_CLEAR_GOAL_DISPLAY_MS = 1500;
 /** ゲームクリア：GOAL!! → クリア画面のフェード時間（ms） */
 export const GAME_CLEAR_FADE_DURATION_MS = 400;
+/** ゲームクリア：GOAL!! テキストのフォントサイズ */
+export const GAME_CLEAR_GOAL_TEXT_FONT_SIZE = "48px";
+/** ゲームクリア：GOAL!! テキストの色 */
+export const GAME_CLEAR_GOAL_TEXT_COLOR = "#ffeb3b";
+/** ゲームクリア：GOAL!! バウンス Tween の 1 段階目時間（ms） */
+export const GAME_CLEAR_GOAL_TWEEN_DURATION_FIRST_MS = 300;
+/** ゲームクリア：GOAL!! バウンス Tween の 2 段階目時間（ms） */
+export const GAME_CLEAR_GOAL_TWEEN_DURATION_BOUNCE_MS = 200;
+/** ゲームクリア画面：背景グラデーション（上） */
+export const GAME_CLEAR_BG_GRADIENT_TOP = 0x2a5a8f;
+/** ゲームクリア画面：背景グラデーション（下） */
+export const GAME_CLEAR_BG_GRADIENT_BOTTOM = 0x87ceeb;
+/** ゲームクリア画面：キャラ画像とテキストの間隔（px） */
+export const GAME_CLEAR_UI_GAP = 16;
+/** ゲームクリア画面：描画深度（背景） */
+export const GAME_CLEAR_DEPTH_BG = 999;
+/** ゲームクリア画面：描画深度（キャラ画像） */
+export const GAME_CLEAR_DEPTH_IMAGE = 1000;
+/** ゲームクリア画面：描画深度（テキスト） */
+export const GAME_CLEAR_DEPTH_TEXT = 1001;
+/** ゲームクリア画面：タイトル文言 */
+export const GAME_CLEAR_TITLE_TEXT = "GAME CLEAR";
+/** ゲームクリア画面：タッチでタイトルへ戻るの文言 */
+export const GAME_CLEAR_TOUCH_TO_TITLE_TEXT = "Touch to go to the title.";
 
+/** タイトル画面「Touch to start」の文言 */
+export const TITLE_TOUCH_TEXT = "Touch to start";
 /** タイトル画面「Touch to start」のフォントサイズ */
 export const TITLE_TOUCH_FONT_SIZE = "14px";
 /** タイトル画像の下から「Touch to start」までのオフセット（1文分の余白） */
 export const TITLE_TOUCH_OFFSET_Y = 40;
+/** タイトル画面のテキスト共通パディング */
+export const TITLE_TEXT_PADDING = {
+  left: 2,
+  right: 2,
+  top: 0,
+  bottom: 4,
+} as const;
 /** タイトル画面の著作権表示 */
 export const TITLE_COPYRIGHT_TEXT = "©2026 Wado";
 /** タイトル画面の著作権表示フォントサイズ */
