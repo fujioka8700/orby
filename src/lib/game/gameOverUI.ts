@@ -3,8 +3,10 @@ import {
   GAME_HEIGHT,
   GAME_OVER_CONTINUE_FONT_SIZE,
   GAME_OVER_CONTINUE_OFFSET_Y,
+  GAME_OVER_CONTINUE_TEXT,
   GAME_OVER_FONT_SIZE,
   GAME_OVER_OVERLAY_ALPHA,
+  GAME_OVER_TEXT,
   GAME_WIDTH,
   UI_FONT_FAMILY,
 } from "@/lib/game/constants";
@@ -32,7 +34,7 @@ export function createGameOverUI(scene: Phaser.Scene): GameOverUI {
   overlay.setScrollFactor(0);
   overlay.setDepth(1000);
 
-  const gameOverText = scene.add.text(centerX, centerY, "GAME OVER", {
+  const gameOverText = scene.add.text(centerX, centerY, GAME_OVER_TEXT, {
     fontFamily: UI_FONT_FAMILY,
     fontSize: GAME_OVER_FONT_SIZE,
     color: "#ffffff",
@@ -42,7 +44,7 @@ export function createGameOverUI(scene: Phaser.Scene): GameOverUI {
   gameOverText.setDepth(1001);
 
   const continueY = centerY + GAME_OVER_CONTINUE_OFFSET_Y;
-  const continueText = scene.add.text(centerX, continueY, "Touch to continue", {
+  const continueText = scene.add.text(centerX, continueY, GAME_OVER_CONTINUE_TEXT, {
     fontFamily: UI_FONT_FAMILY,
     fontSize: GAME_OVER_CONTINUE_FONT_SIZE,
     color: "#ffffff",

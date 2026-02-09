@@ -7,6 +7,11 @@ import {
   ENEMY_OBJECT_NAME,
   GAME_CLEAR_FADE_DURATION_MS,
   GAME_CLEAR_GOAL_DISPLAY_MS,
+  GAME_CLEAR_GOAL_TWEEN_DURATION_BOUNCE_MS,
+  GAME_CLEAR_GOAL_TWEEN_DURATION_FIRST_MS,
+  GAME_CLEAR_GOAL_TEXT,
+  GAME_CLEAR_GOAL_TEXT_COLOR,
+  GAME_CLEAR_GOAL_TEXT_FONT_SIZE,
   GAME_CONSTANTS,
   GOAL_FLAG_OBJECT_NAMES,
   GOAL_FLAG_SIZE,
@@ -144,12 +149,19 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       this.gameClearScreenRef = createGameClearScreen(this);
     }
 
-    /** シーン再開時（GAME CLEAR→タイトルから戻った後）にゲームロジック・物理が正しく動くようリセット */
+    /** ゲームクリア画面の update だけ行うべき状態か（単一画像モード or 本番クリア表示中） */
+    private shouldUpdateGameClearScreen(): boolean {
+      return (CREATE_A_SINGLE_IMAGE && DEBUG) || this.isGameClear;
+    }
+
+    /** シーン再開時（GAME CLEAR→タイトルから戻った後）にゲームロジック・物理・残機・コインをリセット */
     private resetSceneStateForRestart() {
       this.goalReached = false;
       this.isGameClear = false;
       this.gameClearScreenRef = null;
       this.physics.resume();
+      this.livesCount = LIVES_INITIAL;
+      this.coinCount = 0;
     }
 
     /** タイトル画面を表示し、タッチで startTitleFadeOut を呼ぶ */
@@ -332,10 +344,10 @@ export function createMainScene(PhaserLib: typeof Phaser) {
     /** 画面上に "GOAL!!" をバウンスアニメーションで表示 */
     private showGoalText() {
       const cam = this.cameras.main;
-      this.goalText = this.add.text(cam.width / 2, cam.height / 2, "GOAL!!", {
+      this.goalText = this.add.text(cam.width / 2, cam.height / 2, GAME_CLEAR_GOAL_TEXT, {
         fontFamily: UI_FONT_FAMILY,
-        fontSize: "48px",
-        color: "#ffeb3b",
+        fontSize: GAME_CLEAR_GOAL_TEXT_FONT_SIZE,
+        color: GAME_CLEAR_GOAL_TEXT_COLOR,
       });
       this.goalText.setOrigin(0.5, 0.5);
       this.goalText.setScrollFactor(0);
@@ -346,14 +358,14 @@ export function createMainScene(PhaserLib: typeof Phaser) {
         targets: this.goalText,
         alpha: 1,
         scale: 1.2,
-        duration: 300,
+        duration: GAME_CLEAR_GOAL_TWEEN_DURATION_FIRST_MS,
         ease: "Back.easeOut",
         onComplete: () => {
           if (!this.goalText) return;
           this.tweens.add({
             targets: this.goalText,
             scale: 1,
-            duration: 200,
+            duration: GAME_CLEAR_GOAL_TWEEN_DURATION_BOUNCE_MS,
             ease: "Bounce.easeOut",
           });
         },
@@ -582,6 +594,11 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       this.missSequenceOnComplete = onComplete;
       this.cameras.main.stopFollow();
       this.player.anims.stop();
+      this.applyMissAppearanceAndBounce();
+    }
+
+    /** ミス時の見た目（Player_miss）とぴょんと上に飛ばす演出を適用 */
+    private applyMissAppearanceAndBounce() {
       const playerBody = this.player.body as Phaser.Physics.Arcade.Body;
       this.player.setTexture(ASSET_KEYS.PLAYER_MISS, 0);
       this.applyPlayerBodySize(
@@ -645,18 +662,8 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       this.isInFallDeathTransition = true;
       this.isWaitingForFallDeathOffScreen = true;
       this.cameras.main.stopFollow();
-
-      // ミス演出＋ぴょんと一回上に飛ばしてから落下
       this.player.anims.stop();
-      const playerBody = this.player.body as Phaser.Physics.Arcade.Body;
-      this.player.setTexture(ASSET_KEYS.PLAYER_MISS, 0);
-      this.applyPlayerBodySize(
-        playerBody,
-        GAME_CONSTANTS.PLAYER.MISS_BODY_WIDTH,
-        GAME_CONSTANTS.PLAYER.MISS_BODY_HEIGHT,
-      );
-      playerBody.setVelocity(0, GAME_CONSTANTS.PLAYER.MISS_BOUNCE_VELOCITY);
-      playerBody.checkCollision.none = true;
+      this.applyMissAppearanceAndBounce();
     }
 
     /** 落下死で画面外に出たあと、フェードアウト〜復帰処理を行う */
@@ -709,19 +716,18 @@ export function createMainScene(PhaserLib: typeof Phaser) {
     }
 
     private restartFromGameOver() {
-      if (this.gameOverOverlay) {
-        this.gameOverOverlay.destroy();
-        this.gameOverOverlay = null;
-      }
-      if (this.gameOverText) {
-        this.gameOverText.destroy();
-        this.gameOverText = null;
-      }
-      if (this.gameOverContinueText) {
-        this.gameOverContinueText.destroy();
-        this.gameOverContinueText = null;
-      }
+      this.destroyGameOverUI();
       this.restart();
+    }
+
+    /** GAME OVER 表示用のオーバーレイ・テキストを破棄する */
+    private destroyGameOverUI() {
+      this.gameOverOverlay?.destroy();
+      this.gameOverOverlay = null;
+      this.gameOverText?.destroy();
+      this.gameOverText = null;
+      this.gameOverContinueText?.destroy();
+      this.gameOverContinueText = null;
     }
 
     /** 敵を初期位置・向きに戻す（ミス復帰・restart で共通利用） */
@@ -802,17 +808,13 @@ export function createMainScene(PhaserLib: typeof Phaser) {
     }
 
     update() {
-      if (CREATE_A_SINGLE_IMAGE && DEBUG) {
+      if (this.shouldUpdateGameClearScreen()) {
         this.gameClearScreenRef?.update();
         return;
       }
       if (!this.gameStarted) return;
       if (this.isGameOver) return;
       if (this.goalReached && !this.isGameClear) return;
-      if (this.isGameClear) {
-        this.gameClearScreenRef?.update();
-        return;
-      }
       if (!this.player?.body) return;
 
       const playerBody = this.player.body as Phaser.Physics.Arcade.Body;

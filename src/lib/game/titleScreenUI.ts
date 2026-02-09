@@ -9,8 +9,10 @@ import {
   TITLE_COPYRIGHT_OFFSET_Y,
   TITLE_COPYRIGHT_TEXT,
   TITLE_DISPLAY_HEIGHT,
+  TITLE_TEXT_PADDING,
   TITLE_TOUCH_FONT_SIZE,
   TITLE_TOUCH_OFFSET_Y,
+  TITLE_TOUCH_TEXT,
   TITLE_TOP_Y,
   UI_FONT_FAMILY,
 } from "@/lib/game/constants";
@@ -48,11 +50,11 @@ export function createTitleScreen(scene: Phaser.Scene): TitleScreenUI {
   titleImage.setDepth(2000);
 
   const touchY = titleY + titleHeight / 2 + TITLE_TOUCH_OFFSET_Y;
-  const touchText = scene.add.text(centerX, touchY, "Touch to start", {
+  const touchText = scene.add.text(centerX, touchY, TITLE_TOUCH_TEXT, {
     fontFamily: UI_FONT_FAMILY,
     fontSize: TITLE_TOUCH_FONT_SIZE,
     color: "#ffffff",
-    padding: { left: 2, right: 2, top: 0, bottom: 4 },
+    padding: TITLE_TEXT_PADDING,
   });
   touchText.setOrigin(0.5);
   touchText.setScrollFactor(0);
@@ -72,10 +74,10 @@ export function createTitleScreen(scene: Phaser.Scene): TitleScreenUI {
     copyrightY,
     TITLE_COPYRIGHT_TEXT,
     {
-      fontFamily: UI_FONT_FAMILY,
+      fontFamily: "sans-serif",
       fontSize: TITLE_COPYRIGHT_FONT_SIZE,
       color: "#ffffff",
-      padding: { left: 2, right: 2, top: 0, bottom: 4 },
+      padding: TITLE_TEXT_PADDING,
     },
   );
   copyrightText.setOrigin(0.5);
