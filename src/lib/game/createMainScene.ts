@@ -759,6 +759,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       this.coinCount = 0;
       this.updateCoinsText();
       this.setupCoins();
+      this.setupPlayerCoinOverlap();
 
       this.restorePlayerAppearance();
       this.player.setVisible(true);
