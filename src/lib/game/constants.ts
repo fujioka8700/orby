@@ -179,6 +179,42 @@ export const BACKGROUND_ASSET =
 export const PLAYER_GAME_COMPLETE_ASSET =
   "/orby/assets/graphics/characters/Player_game_complete.png";
 
+/** プレイヤー・ジャンプ効果音 */
+export const PLAYER_JUMP_AUDIO_ASSET =
+  "/orby/assets/audio/sfx/player/jump.mp3";
+
+/** プレイヤー・コイン取得効果音 */
+export const PLAYER_COIN_AUDIO_ASSET =
+  "/orby/assets/audio/sfx/player/piriin.mp3";
+
+/** プレイヤー・ミス時効果音（敵接触・落下死など） */
+export const PLAYER_MISS_AUDIO_ASSET =
+  "/orby/assets/audio/sfx/player/miss.mp3";
+
+/** プレイヤー・ゴール時効果音 */
+export const PLAYER_GOAL_AUDIO_ASSET =
+  "/orby/assets/audio/sfx/player/goal.mp3";
+/** ゴール音を止めて次の画面へ遷移するまでの「終了の何秒前」か（秒） */
+export const GOAL_SOUND_STOP_BEFORE_END_SEC = 1.5;
+
+/** プレイヤー・ゲームオーバー時効果音 */
+export const PLAYER_GAMEOVER_AUDIO_ASSET =
+  "/orby/assets/audio/sfx/player/gameover.mp3";
+
+/** ステージ1（アクションゲーム）BGM */
+export const BGM_STAGE1_AUDIO_ASSET =
+  "/orby/assets/audio/bgm/stage1.mp3";
+
+/** ゲームクリア画面BGM */
+export const BGM_GAMECLEAR_AUDIO_ASSET =
+  "/orby/assets/audio/bgm/gameclear.mp3";
+
+/** タイトル画面タッチ時（ゲームスタート）効果音 */
+export const SFX_GAMESTART_AUDIO_ASSET =
+  "/orby/assets/audio/sfx/ui/gamestart.mp3";
+/** ゲームスタート効果音の再生を終了する時間（元の長さから引く秒数） */
+export const GAMESTART_SFX_SHORTER_BY_SEC = 0.2;
+
 /** Phaser で登録するアセット・テクスチャのキー（preload / create で統一利用） */
 export const ASSET_KEYS = {
   TILEMAP: "tilemap",
@@ -196,6 +232,14 @@ export const ASSET_KEYS = {
   PLAYER_MISS: "player_miss",
   TITLE: "title",
   PLAYER_GAME_COMPLETE: "playerGameComplete",
+  PLAYER_JUMP: "playerJump",
+  PLAYER_COIN: "playerCoin",
+  PLAYER_MISS_SFX: "playerMissSfx",
+  PLAYER_GOAL: "playerGoal",
+  PLAYER_GAMEOVER: "playerGameover",
+  BGM_STAGE1: "bgmStage1",
+  BGM_GAMECLEAR: "bgmGameclear",
+  SFX_GAMESTART: "sfxGamestart",
 } as const;
 
 export const TILEMAP_ASSETS = {

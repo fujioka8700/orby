@@ -32,3 +32,4 @@ alwaysApply: true
 
 - **`src/lib/game/phaserConfig.ts`** はリファクタリング対象外とする。内容の変更や構成の見直しは行わず、他のファイルから参照する形で利用する。
 - **`docs/notes.md`** はリファクタリング対象外とする。
+- **`docs/special_thanks.md`** はリファクタリング対象外とする。

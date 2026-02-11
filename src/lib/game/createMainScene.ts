@@ -6,12 +6,13 @@ import {
   COIN_SIZE,
   ENEMY_OBJECT_NAME,
   GAME_CLEAR_FADE_DURATION_MS,
-  GAME_CLEAR_GOAL_DISPLAY_MS,
+  GOAL_SOUND_STOP_BEFORE_END_SEC,
   GAME_CLEAR_GOAL_TWEEN_DURATION_BOUNCE_MS,
   GAME_CLEAR_GOAL_TWEEN_DURATION_FIRST_MS,
   GAME_CLEAR_GOAL_TEXT,
   GAME_CLEAR_GOAL_TEXT_COLOR,
   GAME_CLEAR_GOAL_TEXT_FONT_SIZE,
+  GAMESTART_SFX_SHORTER_BY_SEC,
   GAME_CONSTANTS,
   GOAL_FLAG_OBJECT_NAMES,
   GOAL_FLAG_SIZE,
@@ -96,6 +97,10 @@ export function createMainScene(PhaserLib: typeof Phaser) {
     /** タイトル画面をタッチしてゲーム開始したか */
     private gameStarted = false;
     private titleScreenRef: TitleScreenUI | null = null;
+    /** アクションゲーム用BGM（ループ再生・一時停止／停止用） */
+    private bgmSound: Phaser.Sound.WebAudioSound | null = null;
+    /** ゲームクリア画面用BGM（遷移時に停止するため参照を保持） */
+    private gameClearBGM: Phaser.Sound.WebAudioSound | null = null;
 
     constructor() {
       super({ key: "GameScene" });
@@ -139,6 +144,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       this.setupLivesUI();
       if (DEBUG && SKIP_TITLE_SCREEN) {
         this.gameStarted = true;
+        this.startGameBGM();
       } else {
         this.setupTitleScreen();
       }
@@ -154,11 +160,50 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       return (CREATE_A_SINGLE_IMAGE && DEBUG) || this.isGameClear;
     }
 
+    /** アクションゲーム用BGMをループ再生する（音量はこのBGMのみ70%） */
+    private startGameBGM() {
+      if (!this.bgmSound) {
+        this.bgmSound = this.sound.add(
+          ASSET_KEYS.BGM_STAGE1,
+        ) as Phaser.Sound.WebAudioSound;
+        this.bgmSound.setVolume(0.7);
+      }
+      this.bgmSound.seek = 0;
+      this.bgmSound.play({ loop: true });
+    }
+
+    /** ミス再開時：一時停止した位置からBGMを再開し、音量をフェードインする */
+    private resumeGameBGMWithFadeIn() {
+      if (!this.bgmSound) return;
+      this.bgmSound.setVolume(0);
+      this.bgmSound.resume();
+      const fadeDuration = GAME_CONSTANTS.CAMERA.FADE_DURATION_MS;
+      const state = { volume: 0 };
+      this.tweens.add({
+        targets: state,
+        volume: 0.7,
+        duration: fadeDuration,
+        ease: "Linear",
+        onUpdate: () => this.bgmSound?.setVolume(state.volume),
+      });
+    }
+
+    /** ミス時：BGMを一時停止する（再生位置は保持される） */
+    private pauseGameBGM() {
+      this.bgmSound?.pause();
+    }
+
+    /** アクションゲーム用BGMを停止する（ゲームオーバー・クリア画面遷移時） */
+    private stopGameBGM() {
+      this.bgmSound?.stop();
+    }
+
     /** シーン再開時（GAME CLEAR→タイトルから戻った後）にゲームロジック・物理・残機・コインをリセット */
     private resetSceneStateForRestart() {
       this.goalReached = false;
       this.isGameClear = false;
       this.gameClearScreenRef = null;
+      this.gameClearBGM = null;
       this.physics.resume();
       this.livesCount = LIVES_INITIAL;
       this.coinCount = 0;
@@ -170,22 +215,67 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       this.input.once("pointerdown", this.startTitleFadeOut, this);
     }
 
-    /** タイトルでタッチ時: フェードアウト → タイトル削除 → フェードイン → ゲーム開始 */
+    /** タイトルでタッチ時: ゲームスタート効果音を1回再生＋フェードアウト → 効果音終了後にタイトル削除・フェードイン → ゲーム開始 */
     private startTitleFadeOut() {
       const duration = GAME_CONSTANTS.CAMERA.FADE_DURATION_MS;
+      const gameStartSfx = this.sound.add(ASSET_KEYS.SFX_GAMESTART);
+      gameStartSfx.play({ loop: false });
+
+      let fadeOutDone = false;
+      let sfxDone = false;
+      const tryStartFadeInAndGame = () => {
+        if (!fadeOutDone || !sfxDone) return;
+        gameStartSfx.stop();
+        this.destroyTitleAndFadeInToGame(duration);
+      };
+
       this.cameras.main.fadeOut(duration, 0, 0, 0);
       this.cameras.main.once(
         Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE,
         () => {
-          this.titleScreenRef?.destroy();
-          this.titleScreenRef = null;
-          this.cameras.main.fadeIn(duration, 0, 0, 0);
-          this.cameras.main.once(
-            Phaser.Cameras.Scene2D.Events.FADE_IN_COMPLETE,
-            () => {
-              this.gameStarted = true;
-            },
-          );
+          fadeOutDone = true;
+          tryStartFadeInAndGame();
+        },
+      );
+      this.scheduleGameStartSfxEnd(gameStartSfx, () => {
+        sfxDone = true;
+        tryStartFadeInAndGame();
+      });
+    }
+
+    /** ゲームスタート効果音を指定秒だけ短く再生し、終了時に onEnd を呼ぶ */
+    private scheduleGameStartSfxEnd(
+      sound: Phaser.Sound.BaseSound,
+      onEnd: () => void,
+    ) {
+      const durationSec =
+        "duration" in sound && typeof sound.duration === "number"
+          ? sound.duration
+          : 0;
+      const stopInSec = Math.max(
+        0,
+        durationSec - GAMESTART_SFX_SHORTER_BY_SEC,
+      );
+      if (stopInSec > 0) {
+        this.time.delayedCall(stopInSec * 1000, () => {
+          sound.stop();
+          onEnd();
+        });
+      } else {
+        sound.once("complete", onEnd);
+      }
+    }
+
+    /** タイトルを破棄し、フェードイン後にゲーム開始・BGM開始する */
+    private destroyTitleAndFadeInToGame(fadeDurationMs: number) {
+      this.titleScreenRef?.destroy();
+      this.titleScreenRef = null;
+      this.cameras.main.fadeIn(fadeDurationMs, 0, 0, 0);
+      this.cameras.main.once(
+        Phaser.Cameras.Scene2D.Events.FADE_IN_COMPLETE,
+        () => {
+          this.gameStarted = true;
+          this.startGameBGM();
         },
       );
     }
@@ -321,6 +411,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
         (coin as Phaser.GameObjects.GameObject).destroy();
         this.coinCount++;
         this.updateCoinsText();
+        this.sound.play(ASSET_KEYS.PLAYER_COIN);
       });
     }
 
@@ -334,11 +425,21 @@ export function createMainScene(PhaserLib: typeof Phaser) {
     private onGoalReached() {
       if (this.goalReached) return;
       this.goalReached = true;
+      this.stopGameBGM();
       this.physics.pause();
+      this.player.anims.stop();
       this.showGoalText();
-      this.time.delayedCall(GAME_CLEAR_GOAL_DISPLAY_MS, () =>
-        this.startTransitionToGameClear(),
+      const goalSound = this.sound.add(ASSET_KEYS.PLAYER_GOAL) as Phaser.Sound.BaseSound;
+      const durationSec = goalSound.totalDuration ?? goalSound.duration ?? 1;
+      const transitionAtMs = Math.max(
+        0,
+        (durationSec - GOAL_SOUND_STOP_BEFORE_END_SEC) * 1000,
       );
+      goalSound.play();
+      this.time.delayedCall(transitionAtMs, () => {
+        goalSound.stop();
+        this.startTransitionToGameClear();
+      });
     }
 
     /** 画面上に "GOAL!!" をバウンスアニメーションで表示 */
@@ -374,6 +475,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
 
     /** GOAL!! 表示の 1.5 秒後にフェードアウトし、完了後にゲームクリア画面を表示してフェードイン */
     private startTransitionToGameClear() {
+      this.stopGameBGM();
       const cam = this.cameras.main;
       cam.once("camerafadeoutcomplete", () => {
         this.showGameClearScreen();
@@ -386,12 +488,32 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       this.isGameClear = true;
       this.player.setVisible(false);
       this.cameras.main.stopFollow();
+      this.gameClearBGM = this.sound.add(
+        ASSET_KEYS.BGM_GAMECLEAR,
+      ) as Phaser.Sound.WebAudioSound;
+      this.gameClearBGM.setVolume(0);
+      this.gameClearBGM.play({ loop: true, seek: 4 });
+      const fadeDuration = GAME_CONSTANTS.CAMERA.FADE_DURATION_MS;
+      const state = { volume: 0 };
+      this.tweens.add({
+        targets: state,
+        volume: 0.7,
+        duration: fadeDuration,
+        ease: "Linear",
+        onUpdate: () => this.gameClearBGM?.setVolume(state.volume),
+      });
       this.gameClearScreenRef = createGameClearScreen(this, {
         onTouchToTitle: () => {
-          // シーン再開でタイトル画面を表示し、プレイヤー・敵などを初期状態に戻す
+          this.stopGameClearBGM();
           this.scene.restart();
         },
       });
+    }
+
+    /** ゲームクリア画面用BGMを停止する（クリア画面から他画面へ遷移時） */
+    private stopGameClearBGM() {
+      this.gameClearBGM?.stop();
+      this.gameClearBGM = null;
     }
 
     private setupPlayer() {
@@ -599,6 +721,8 @@ export function createMainScene(PhaserLib: typeof Phaser) {
 
     /** ミス時の見た目（Player_miss）とぴょんと上に飛ばす演出を適用 */
     private applyMissAppearanceAndBounce() {
+      this.pauseGameBGM();
+      this.sound.play(ASSET_KEYS.PLAYER_MISS_SFX);
       const playerBody = this.player.body as Phaser.Physics.Arcade.Body;
       this.player.setTexture(ASSET_KEYS.PLAYER_MISS, 0);
       this.applyPlayerBodySize(
@@ -632,7 +756,10 @@ export function createMainScene(PhaserLib: typeof Phaser) {
           this.cameras.main.fadeIn(duration, 0, 0, 0);
           this.cameras.main.once(
             Phaser.Cameras.Scene2D.Events.FADE_IN_COMPLETE,
-            onFadeInComplete,
+            () => {
+              this.resumeGameBGMWithFadeIn();
+              onFadeInComplete();
+            },
           );
         },
       );
@@ -707,12 +834,18 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       this.isGameOver = true;
       this.player.setVisible(false);
       this.physics.pause();
+      this.stopGameBGM();
 
       const ui = createGameOverUI(this);
       this.gameOverOverlay = ui.overlay;
       this.gameOverText = ui.gameOverText;
       this.gameOverContinueText = ui.continueText;
-      this.input.once("pointerdown", this.restartFromGameOver, this);
+
+      const gameOverSound = this.sound.add(ASSET_KEYS.PLAYER_GAMEOVER);
+      gameOverSound.once("complete", () => {
+        this.input.once("pointerdown", this.restartFromGameOver, this);
+      });
+      gameOverSound.play();
     }
 
     private restartFromGameOver() {
@@ -772,6 +905,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       this.physics.resume();
       this.startCameraFollow();
       this.invincibleUntil = 0;
+      this.startGameBGM();
     }
 
     private setupLivesUI() {
@@ -842,10 +976,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
 
       const deltaTime = this.game.loop.delta / 1000;
 
-      if (
-        playerBody.bottom > this.deathY &&
-        this.time.now >= this.invincibleUntil
-      ) {
+      if (playerBody.bottom > this.deathY) {
         this.handleFallDeath();
         return;
       }
@@ -876,6 +1007,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       if (jumpJustPressed) {
         playerBody.setVelocityY(GAME_CONSTANTS.MOVEMENT.JUMP_VELOCITY);
         this.player.play("jump", true);
+        this.sound.play(ASSET_KEYS.PLAYER_JUMP);
       }
 
       if (
