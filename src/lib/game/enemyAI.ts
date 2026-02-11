@@ -1,5 +1,9 @@
 /// <reference types="phaser" />
-import { GAME_CONSTANTS } from "@/lib/game/constants";
+import {
+  ASSET_KEYS,
+  BIRD_1_BOB_SPEED,
+  GAME_CONSTANTS,
+} from "@/lib/game/constants";
 import type { EnemySprite } from "@/lib/game/types";
 
 export function updateEnemies(
@@ -9,18 +13,46 @@ export function updateEnemies(
 ): void {
   for (const enemy of enemies) {
     const enemyBody = enemy.body as Phaser.Physics.Arcade.Body;
+    const isFlying = enemy.texture.key === ASSET_KEYS.BIRD_1;
     if (enemy.moveDirection === undefined) {
       enemy.moveDirection = GAME_CONSTANTS.ENEMY.INITIAL_DIRECTION;
     }
-    const { checkX, checkY } = getEnemySensorPosition(enemy, enemyBody);
-    const hasFloor = checkEnemyFloor(platformLayer, checkX, checkY);
-    const hitWall = enemyBody.blocked.left || enemyBody.blocked.right;
-    const isGake = !hasFloor && enemyBody.blocked.down;
-    if (hitWall || isGake) {
-      flipEnemy(enemy, enemyBody);
+    if (!isFlying) {
+      const { checkX, checkY } = getEnemySensorPosition(enemy, enemyBody);
+      const hasFloor = checkEnemyFloor(platformLayer, checkX, checkY);
+      const hitWall = enemyBody.blocked.left || enemyBody.blocked.right;
+      const isGake = !hasFloor && enemyBody.blocked.down;
+      if (hitWall || isGake) {
+        flipEnemy(enemy, enemyBody);
+      }
+    } else {
+      if (
+        enemy.startX != null &&
+        enemy.range != null &&
+        typeof enemy.startX === "number" &&
+        typeof enemy.range === "number"
+      ) {
+        if (
+          enemy.moveDirection > 0 &&
+          enemy.x >= enemy.startX + enemy.range
+        ) {
+          flipEnemy(enemy, enemyBody);
+        } else if (
+          enemy.moveDirection < 0 &&
+          enemy.x <= enemy.startX - enemy.range
+        ) {
+          flipEnemy(enemy, enemyBody);
+        }
+      }
+      if (enemyBody.blocked.left || enemyBody.blocked.right) {
+        flipEnemy(enemy, enemyBody);
+      }
     }
     enemyBody.setVelocityX(GAME_CONSTANTS.ENEMY.SPEED_X * enemy.moveDirection);
-    if (!enemyBody.blocked.down) {
+    if (isFlying) {
+      const t = _scene.time.now * 0.002;
+      enemyBody.setVelocityY(Math.sin(t) * BIRD_1_BOB_SPEED);
+    } else if (!enemyBody.blocked.down) {
       enemyBody.setVelocityY(GAME_CONSTANTS.ENEMY.SPEED_Y);
     }
   }

@@ -60,6 +60,13 @@ export const PLAYER_MISS_ASSET =
   "/orby/assets/graphics/characters/Player_miss.png";
 export const SPIDER_ASSET = "/orby/assets/graphics/enemies/Spider_1.png";
 
+/** Bird_1 敵：48x48px、3コマ */
+export const BIRD_1_ASSET = "/orby/assets/graphics/enemies/Bird_1.png";
+export const BIRD_1_FRAME_SIZE = 48;
+export const BIRD_1_OBJECT_NAME = "Bird_1";
+/** Bird_1 の縦方向ふわふわの速度振幅（px/秒）。ミス再開後も変わらないよう定数で固定 */
+export const BIRD_1_BOB_SPEED = 12;
+
 /** ゴール旗（Goal_flag）：32x32px、5コマアニメーション */
 export const GOAL_FLAG_ASSET = "/orby/assets/graphics/items/Flag_animation.png";
 export const GOAL_FLAG_SIZE = 32;
@@ -167,13 +174,24 @@ export const OBJECT_LAYER_NAME = "objectsLayer";
 export const GOAL_FLAG_OBJECT_NAMES = ["Goal_flag", "goal_flag"] as const;
 export const COIN_OBJECT_NAME = "Coin";
 export const ENEMY_OBJECT_NAME = "Spider_1";
+export const ENEMY_OBJECT_NAMES = [ENEMY_OBJECT_NAME, BIRD_1_OBJECT_NAME] as const;
 
 /** メインシーン・ゲーム背景色 */
 export const SCENE_BACKGROUND_COLOR = "#2c3e50";
 
-/** 固定背景 */
+/** 1st ステージ用固定背景 */
 export const BACKGROUND_ASSET =
   "/orby/assets/graphics/backgrounds/Forest_Background_0.png";
+
+/** 2nd ステージ用背景（固定） */
+export const BACKGROUND_SKY_0_ASSET =
+  "/orby/assets/graphics/backgrounds/Sky_Background_0.png";
+/** 2nd ステージ用背景（パララックス層1） */
+export const BACKGROUND_SKY_1_ASSET =
+  "/orby/assets/graphics/backgrounds/Sky_Background_1.png";
+/** 2nd ステージ用背景（パララックス層2） */
+export const BACKGROUND_SKY_2_ASSET =
+  "/orby/assets/graphics/backgrounds/Sky_Background_2.png";
 
 /** ゲームクリア画面用画像（CREATE_A_SINGLE_IMAGE 時の仮表示） */
 export const PLAYER_GAME_COMPLETE_ASSET =
@@ -220,12 +238,18 @@ export const ASSET_KEYS = {
   TILEMAP: "tilemap",
   PLAYER: "player",
   SPIDER: "spider",
+  BIRD_1: "bird1",
   GOAL_FLAG: "goalFlag",
   BACKGROUND: "background",
+  BACKGROUND_SKY_0: "backgroundSky0",
+  BACKGROUND_SKY_1: "backgroundSky1",
+  BACKGROUND_SKY_2: "backgroundSky2",
   TILESET_GRASS: "tilesetGrass",
   TILESET_PLATFORM: "tilesetPlatform",
   TILESET_GRASS_ONEWAY: "tilesetGrassOneway",
   TILESET_LEAF: "tilesetLeaf",
+  TILESET_GRASS_ROCK: "tilesetGrassRock",
+  TILESET_CLOUD: "tilesetCloud",
   COIN: "coin",
   COINS_UI: "coinsUi",
   LIVES_ICON: "livesIcon",
@@ -248,5 +272,10 @@ export const TILEMAP_ASSETS = {
   tilesetGrassOneway:
     "/orby/assets/graphics/environment/tilesets/Grass_Oneway.png",
   tilesetLeaf: "/orby/assets/graphics/environment/tilesets/Leaf_Tileset.png",
+  tilesetGrassRock:
+    "/orby/assets/graphics/environment/tilesets/Grass_Rock_Tileset.png",
+  tilesetCloud:
+    "/orby/assets/graphics/environment/tilesets/Cloud_Tileset.png",
   tilemap: "/orby/assets/maps/1st_stage_tilemap.json",
+  tilemap2nd: "/orby/assets/maps/2nd_stage_tilemap.json",
 } as const;
