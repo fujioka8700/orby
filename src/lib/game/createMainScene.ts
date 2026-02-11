@@ -892,7 +892,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       this.coinCount = 0;
       this.updateCoinsText();
       this.setupCoins();
-      this.setupPlayerCoinOverlap();
+      // コイン取得の overlap は create() で1回だけ登録済み。再登録すると1枚で2回発火するためここでは呼ばない
 
       this.restorePlayerAppearance();
       this.player.setVisible(true);
