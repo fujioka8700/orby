@@ -2,6 +2,8 @@
 import {
   ASSET_KEYS,
   BACKGROUND_ASSET,
+  BIRD_1_ASSET,
+  BIRD_1_FRAME_SIZE,
   BGM_GAMECLEAR_AUDIO_ASSET,
   BGM_STAGE1_AUDIO_ASSET,
   SFX_GAMESTART_AUDIO_ASSET,
@@ -22,9 +24,18 @@ import {
   PLAYER_MISS_ASSET,
   PLAYER_MISS_AUDIO_ASSET,
   SPIDER_ASSET,
+  BACKGROUND_SKY_0_ASSET,
+  BACKGROUND_SKY_1_ASSET,
+  BACKGROUND_SKY_2_ASSET,
   TILEMAP_ASSETS,
   TITLE_ASSET,
 } from "@/lib/game/constants";
+import { DEBUG, STAGE_NUMBER } from "@/lib/game/phaserConfig";
+
+/** 使用するステージ番号（DEBUG 時のみ STAGE_NUMBER、そうでないときは 1） */
+function getEffectiveStageNumber(): 1 | 2 {
+  return DEBUG ? (STAGE_NUMBER === 2 ? 2 : 1) : 1;
+}
 
 /** メインシーン用アセットをすべてプリロードする */
 export function loadGameAssets(scene: Phaser.Scene): void {
@@ -39,7 +50,16 @@ export function loadGameAssets(scene: Phaser.Scene): void {
     TILEMAP_ASSETS.tilesetGrassOneway,
   );
   load.image(ASSET_KEYS.TILESET_LEAF, TILEMAP_ASSETS.tilesetLeaf);
-  load.tilemapTiledJSON(ASSET_KEYS.TILEMAP, TILEMAP_ASSETS.tilemap);
+  load.image(
+    ASSET_KEYS.TILESET_GRASS_ROCK,
+    TILEMAP_ASSETS.tilesetGrassRock,
+  );
+  load.image(ASSET_KEYS.TILESET_CLOUD, TILEMAP_ASSETS.tilesetCloud);
+  const tilemapUrl =
+    getEffectiveStageNumber() === 2
+      ? TILEMAP_ASSETS.tilemap2nd
+      : TILEMAP_ASSETS.tilemap;
+  load.tilemapTiledJSON(ASSET_KEYS.TILEMAP, tilemapUrl);
   load.spritesheet(ASSET_KEYS.PLAYER, PLAYER_ASSET, {
     frameWidth: GAME_CONSTANTS.PLAYER.FRAME_WIDTH,
     frameHeight: GAME_CONSTANTS.PLAYER.FRAME_HEIGHT,
@@ -47,6 +67,10 @@ export function loadGameAssets(scene: Phaser.Scene): void {
   load.spritesheet(ASSET_KEYS.SPIDER, SPIDER_ASSET, {
     frameWidth: GAME_CONSTANTS.ENEMY.DISPLAY_WIDTH,
     frameHeight: GAME_CONSTANTS.ENEMY.DISPLAY_HEIGHT,
+  });
+  load.spritesheet(ASSET_KEYS.BIRD_1, BIRD_1_ASSET, {
+    frameWidth: BIRD_1_FRAME_SIZE,
+    frameHeight: BIRD_1_FRAME_SIZE,
   });
   load.spritesheet(ASSET_KEYS.LIVES_ICON, LIVES_ICON_ASSET, {
     frameWidth: LIVES_ICON_FRAME_WIDTH,
@@ -58,6 +82,9 @@ export function loadGameAssets(scene: Phaser.Scene): void {
     frameHeight: GOAL_FLAG_SIZE,
   });
   load.image(ASSET_KEYS.BACKGROUND, BACKGROUND_ASSET);
+  load.image(ASSET_KEYS.BACKGROUND_SKY_0, BACKGROUND_SKY_0_ASSET);
+  load.image(ASSET_KEYS.BACKGROUND_SKY_1, BACKGROUND_SKY_1_ASSET);
+  load.image(ASSET_KEYS.BACKGROUND_SKY_2, BACKGROUND_SKY_2_ASSET);
   load.image(ASSET_KEYS.COIN, COIN_ASSET);
   load.image(ASSET_KEYS.COINS_UI, COINS_UI_ASSET);
   load.image(ASSET_KEYS.TITLE, TITLE_ASSET);

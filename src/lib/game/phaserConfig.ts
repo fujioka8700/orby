@@ -34,7 +34,7 @@ export const USE_IMAGE_BACKGROUND = true;
  * - false: タイトル画面を表示し、タッチでゲーム開始
  * DEBUG = false のときは常にタイトル画面から開始する。
  */
-export const SKIP_TITLE_SCREEN = false;
+export const SKIP_TITLE_SCREEN = true;
 
 /**
  * 単一画像用の画面にする（DEBUG 時のみ有効。他デバッグ項目は無視）。
@@ -44,3 +44,19 @@ export const SKIP_TITLE_SCREEN = false;
 export const CREATE_A_SINGLE_IMAGE = false;
 /** CREATE_A_SINGLE_IMAGE 時の背景色（灰色） */
 export const CREATE_A_SINGLE_IMAGE_BACKGROUND = 0x808080;
+
+/**
+ * ステージ番号（DEBUG 時のみ有効）。
+ * - 1: 1st ステージ（1st_stage_tilemap.json）
+ * - 2: 2nd ステージ（2nd_stage_tilemap.json）
+ * DEBUG = false のときは常に 1st ステージを表示する。
+ */
+export const STAGE_NUMBER = 2;
+
+/**
+ * BGM をオフにするか（DEBUG 時のみ有効）。
+ * - true: アクションゲーム中の BGM を鳴らさない
+ * - false: BGM を鳴らす
+ * DEBUG = false のときは常に BGM が有効（鳴る）になる。
+ */
+export const BGM_OFF = true;

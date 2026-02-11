@@ -41,6 +41,15 @@ export function createGameAnimations(scene: Phaser.Scene): void {
     repeat: -1,
   });
   scene.anims.create({
+    key: "bird-fly",
+    frames: scene.anims.generateFrameNumbers(ASSET_KEYS.BIRD_1, {
+      start: 0,
+      end: 2,
+    }),
+    frameRate: 8,
+    repeat: -1,
+  });
+  scene.anims.create({
     key: "goal-flag",
     frames: scene.anims.generateFrameNumbers(ASSET_KEYS.GOAL_FLAG, {
       start: 0,

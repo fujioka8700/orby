@@ -2,9 +2,12 @@
 import { createGameAnimations } from "@/lib/game/animations";
 import {
   ASSET_KEYS,
+  BIRD_1_FRAME_SIZE,
+  BIRD_1_OBJECT_NAME,
   COIN_OBJECT_NAME,
   COIN_SIZE,
   ENEMY_OBJECT_NAME,
+  ENEMY_OBJECT_NAMES,
   GAME_CLEAR_FADE_DURATION_MS,
   GOAL_SOUND_STOP_BEFORE_END_SEC,
   GAME_CLEAR_GOAL_TWEEN_DURATION_BOUNCE_MS,
@@ -36,10 +39,12 @@ import { loadGameAssets } from "@/lib/game/loadGameAssets";
 import { createTitleScreen } from "@/lib/game/titleScreenUI";
 import {
   ARCADE_DEBUG,
+  BGM_OFF,
   CREATE_A_SINGLE_IMAGE,
   DEBUG,
   PLAYER_START_POSITION,
   SKIP_TITLE_SCREEN,
+  STAGE_NUMBER,
   USE_IMAGE_BACKGROUND,
 } from "@/lib/game/phaserConfig";
 import type { EnemySprite } from "@/lib/game/types";
@@ -129,6 +134,8 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       this.setupTilemap();
       if (this.shouldUseImageBackground()) {
         this.setupBackground();
+      } else if (this.getEffectiveStageNumber() === 2) {
+        this.setupBackground2nd();
       }
       this.setupPlayer();
       this.setupCamera();
@@ -160,8 +167,14 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       return (CREATE_A_SINGLE_IMAGE && DEBUG) || this.isGameClear;
     }
 
+    /** アクションゲームBGMを再生しない設定か（DEBUG かつ BGM_OFF のとき true） */
+    private isActionBGMDisabled(): boolean {
+      return DEBUG && BGM_OFF;
+    }
+
     /** アクションゲーム用BGMをループ再生する（音量はこのBGMのみ70%） */
     private startGameBGM() {
+      if (this.isActionBGMDisabled()) return;
       if (!this.bgmSound) {
         this.bgmSound = this.sound.add(
           ASSET_KEYS.BGM_STAGE1,
@@ -174,7 +187,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
 
     /** ミス再開時：一時停止した位置からBGMを再開し、音量をフェードインする */
     private resumeGameBGMWithFadeIn() {
-      if (!this.bgmSound) return;
+      if (this.isActionBGMDisabled() || !this.bgmSound) return;
       this.bgmSound.setVolume(0);
       this.bgmSound.resume();
       const fadeDuration = GAME_CONSTANTS.CAMERA.FADE_DURATION_MS;
@@ -280,8 +293,14 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       );
     }
 
-    /** 背景を画像で表示するか（DEBUG=false のときは常に true） */
+    /** 有効なステージ番号（DEBUG 時のみ STAGE_NUMBER、そうでないときは 1） */
+    private getEffectiveStageNumber(): 1 | 2 {
+      return DEBUG && STAGE_NUMBER === 2 ? 2 : 1;
+    }
+
+    /** 背景を画像（Forest_Background_0.png）で表示するか。1st のみ画像、2nd は Sky 背景。 */
     private shouldUseImageBackground(): boolean {
+      if (this.getEffectiveStageNumber() === 2) return false;
       return !DEBUG || USE_IMAGE_BACKGROUND;
     }
 
@@ -324,28 +343,81 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       this.background.setDepth(-1);
     }
 
+    /** 2nd ステージ用：Sky_0 を固定、Sky_1/2 をパララックス。いずれもアスペクト比維持で縦幅を画面に合わせる。 */
+    private setupBackground2nd() {
+      const mapWidth = this.map.widthInPixels;
+      const mapHeight = this.map.heightInPixels;
+      const cam = this.cameras.main;
+      const cw = cam.width;
+      const ch = cam.height;
+
+      const fixed = this.add.image(cw / 2, ch / 2, ASSET_KEYS.BACKGROUND_SKY_0);
+      fixed.setScrollFactor(0);
+      fixed.setOrigin(0.5, 0.5);
+      const fixedScale = ch / fixed.height;
+      fixed.setScale(fixedScale);
+      fixed.setDepth(-3);
+
+      const parallax1 = this.add.tileSprite(
+        mapWidth / 2,
+        mapHeight,
+        mapWidth,
+        mapHeight,
+        ASSET_KEYS.BACKGROUND_SKY_1,
+      );
+      parallax1.setOrigin(0.5, 1);
+      const parallaxScale = ch / mapHeight;
+      parallax1.setScale(parallaxScale);
+      parallax1.setScrollFactor(0.3);
+      parallax1.setDepth(-2);
+
+      const parallax2 = this.add.tileSprite(
+        mapWidth / 2,
+        mapHeight,
+        mapWidth,
+        mapHeight,
+        ASSET_KEYS.BACKGROUND_SKY_2,
+      );
+      parallax2.setOrigin(0.5, 1);
+      parallax2.setScale(parallaxScale);
+      parallax2.setScrollFactor(0.6);
+      parallax2.setDepth(-1);
+
+      const bottomBarHeight = 60;
+      const bottomBar = this.add.rectangle(
+        cw / 2,
+        ch - bottomBarHeight / 2,
+        cw,
+        bottomBarHeight,
+        0x00cdf9,
+      );
+      bottomBar.setScrollFactor(0);
+      bottomBar.setDepth(-0.5);
+    }
+
+    /** タイルマップ内のタイルセット名 → プリロード済みアセットキー（1st/2nd 両対応） */
+    private static readonly TILESET_NAME_TO_ASSET_KEY: Record<
+      string,
+      string
+    > = {
+      Grass_Tileset: ASSET_KEYS.TILESET_GRASS,
+      Platform: ASSET_KEYS.TILESET_PLATFORM,
+      Grass_Oneway: ASSET_KEYS.TILESET_GRASS_ONEWAY,
+      Leaf_Tileset: ASSET_KEYS.TILESET_LEAF,
+      Grass_Rock_Tileset: ASSET_KEYS.TILESET_GRASS_ROCK,
+      Cloud_Tileset: ASSET_KEYS.TILESET_CLOUD,
+    };
+
     private collectTilesets(): Phaser.Tilemaps.Tileset[] {
       const tilesets: Phaser.Tilemaps.Tileset[] = [];
-      const grass = this.map.addTilesetImage(
-        "Grass_Tileset",
-        ASSET_KEYS.TILESET_GRASS,
-      );
-      const platform = this.map.addTilesetImage(
-        "Platform",
-        ASSET_KEYS.TILESET_PLATFORM,
-      );
-      const grassOneway = this.map.addTilesetImage(
-        "Grass_Oneway",
-        ASSET_KEYS.TILESET_GRASS_ONEWAY,
-      );
-      const leaf = this.map.addTilesetImage(
-        "Leaf_Tileset",
-        ASSET_KEYS.TILESET_LEAF,
-      );
-      if (grass) tilesets.push(grass);
-      if (platform) tilesets.push(platform);
-      if (grassOneway) tilesets.push(grassOneway);
-      if (leaf) tilesets.push(leaf);
+      for (const mapTileset of this.map.tilesets) {
+        const assetKey =
+          GameScene.TILESET_NAME_TO_ASSET_KEY[mapTileset.name];
+        if (assetKey) {
+          const added = this.map.addTilesetImage(mapTileset.name, assetKey);
+          if (added) tilesets.push(added);
+        }
+      }
       return tilesets;
     }
 
@@ -358,9 +430,31 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       return layer.objects.find((obj) => names.includes(obj.name ?? ""));
     }
 
-    /** DEBUG 時は phaserConfig.PLAYER_START_POSITION、そうでなければ "Player" */
+    /** Tiled オブジェクトのカスタムプロパティ（数値）を取得する */
+    private getTiledPropertyNumber(
+      obj: Phaser.Types.Tilemaps.TiledObject,
+      name: string,
+    ): number | undefined {
+      const raw = obj as {
+        properties?: Array<{ name: string; value: number }> | Record<string, number>;
+      };
+      const props = raw.properties;
+      if (Array.isArray(props)) {
+        const p = props.find((pr) => pr.name === name);
+        return p != null ? Number(p.value) : undefined;
+      }
+      if (props && typeof props === "object" && name in props) {
+        const v = (props as Record<string, number>)[name];
+        return typeof v === "number" ? v : undefined;
+      }
+      return undefined;
+    }
+
+    /** DEBUG 時は phaserConfig.PLAYER_START_POSITION（2nd ステージでは常に "Player"）、そうでなければ "Player" */
     private getPlayerStartObjectName(): string {
-      return DEBUG ? PLAYER_START_POSITION : "Player";
+      if (!DEBUG) return "Player";
+      if (this.getEffectiveStageNumber() === 2) return "Player";
+      return PLAYER_START_POSITION;
     }
 
     private setupGoalFlag() {
@@ -630,27 +724,40 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       const objectLayer = this.map.getObjectLayer(OBJECT_LAYER_NAME);
       if (!objectLayer) return;
 
-      const spiderObjects = objectLayer.objects.filter(
-        (obj) => obj.name === ENEMY_OBJECT_NAME,
+      const enemyObjects = objectLayer.objects.filter((obj) =>
+        ENEMY_OBJECT_NAMES.includes(obj.name as (typeof ENEMY_OBJECT_NAMES)[number]),
       );
       const initialDirection = GAME_CONSTANTS.ENEMY.INITIAL_DIRECTION;
 
-      for (const enemyObj of spiderObjects) {
-        if (enemyObj.x !== undefined && enemyObj.y !== undefined) {
-          const startX = enemyObj.x;
-          const startY = enemyObj.y;
-          const enemy = this.physics.add.sprite(
-            startX,
-            startY,
-            ASSET_KEYS.SPIDER,
-            0,
-          ) as EnemySprite;
+      for (const enemyObj of enemyObjects) {
+        if (enemyObj.x === undefined || enemyObj.y === undefined) continue;
+        const startX = enemyObj.x;
+        const startY = enemyObj.y;
+        const isBird = enemyObj.name === BIRD_1_OBJECT_NAME;
 
+        const enemy = this.physics.add.sprite(
+          startX,
+          startY,
+          isBird ? ASSET_KEYS.BIRD_1 : ASSET_KEYS.SPIDER,
+          isBird ? 0 : 0,
+        ) as EnemySprite;
+
+        if (isBird) {
+          const range = this.getTiledPropertyNumber(enemyObj, "range") ?? 100;
+          enemy.startX = startX;
+          enemy.range = range;
+          enemy.setDisplaySize(BIRD_1_FRAME_SIZE, BIRD_1_FRAME_SIZE);
+          const birdBody = enemy.body as Phaser.Physics.Arcade.Body;
+          birdBody.setSize(15, 14);
+          birdBody.setOffset(17, 17);
+          birdBody.setCollideWorldBounds(true);
+          birdBody.allowGravity = false;
+          enemy.play("bird-fly", true);
+        } else {
           enemy.setDisplaySize(
             GAME_CONSTANTS.ENEMY.DISPLAY_WIDTH,
             GAME_CONSTANTS.ENEMY.DISPLAY_HEIGHT,
           );
-
           const enemyBody = enemy.body as Phaser.Physics.Arcade.Body;
           enemyBody.setSize(
             GAME_CONSTANTS.ENEMY.BODY_WIDTH,
@@ -661,26 +768,26 @@ export function createMainScene(PhaserLib: typeof Phaser) {
             GAME_CONSTANTS.ENEMY.OFFSET_Y,
           );
           enemyBody.setCollideWorldBounds(true);
-
-          enemy.moveDirection = initialDirection;
-          enemy.setFlipX(false);
           enemy.play("spider-walk", true);
-
-          this.physics.add.collider(enemy, this.platformLayer, () => {
-            const body = enemy.body as Phaser.Physics.Arcade.Body;
-            if (body.blocked.left || body.blocked.right) {
-              enemy.moveDirection *= -1;
-              enemy.setFlipX(enemy.moveDirection > 0);
-            }
-          });
-
-          this.enemies.push(enemy);
-          this.enemyStartPositions.push({
-            x: startX,
-            y: startY,
-            moveDirection: initialDirection,
-          });
         }
+
+        enemy.moveDirection = initialDirection;
+        enemy.setFlipX(false);
+
+        this.physics.add.collider(enemy, this.platformLayer, () => {
+          const body = enemy.body as Phaser.Physics.Arcade.Body;
+          if (body.blocked.left || body.blocked.right) {
+            enemy.moveDirection *= -1;
+            enemy.setFlipX(enemy.moveDirection > 0);
+          }
+        });
+
+        this.enemies.push(enemy);
+        this.enemyStartPositions.push({
+          x: startX,
+          y: startY,
+          moveDirection: initialDirection,
+        });
       }
     }
 
