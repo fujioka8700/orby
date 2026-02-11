@@ -3,7 +3,7 @@
  */
 
 /** ゲーム全体のデバッグ。true のときデバッグモードが有効になる。 */
-export const DEBUG = true;
+export const DEBUG = false;
 
 /**
  * Arcade Physics のデバッグ描画。
@@ -18,7 +18,7 @@ export const ARCADE_DEBUG = false;
  * DEBUG = false のときは常に "Player" が使われる。
  */
 export type PlayerStartPosition = "Player" | "Player_before_goal";
-export const PLAYER_START_POSITION: PlayerStartPosition = "Player";
+export const PLAYER_START_POSITION: PlayerStartPosition = "Player_before_goal";
 
 /**
  * 背景を画像で表示するか、灰色にするか（DEBUG 時のみ有効）。
