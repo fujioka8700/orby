@@ -387,8 +387,18 @@ export function createMainScene(PhaserLib: typeof Phaser) {
     }
 
     private setupCoins() {
-      // 既存の Group があれば中身だけ破棄して再利用する（overlap は create() で1回だけ登録しているため同じ参照が必要）
-      if (this.coins) {
+      // 既存の Group がこのシーンに属し有効なときだけ中身を破棄して再利用する（破棄済み Group で clear すると children 未定義で落ちる）
+      let canReuse = false;
+      try {
+        canReuse =
+          !!this.coins &&
+          this.coins.scene === this &&
+          typeof this.coins.getChildren === "function" &&
+          Array.isArray(this.coins.getChildren());
+      } catch {
+        canReuse = false;
+      }
+      if (canReuse) {
         this.coins.clear(true, true);
       } else {
         this.coins = this.add.group();
