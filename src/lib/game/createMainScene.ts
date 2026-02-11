@@ -387,8 +387,12 @@ export function createMainScene(PhaserLib: typeof Phaser) {
     }
 
     private setupCoins() {
-      // シーン再開後は前回の Group は破棄済みのため、常に新規作成する
-      this.coins = this.add.group();
+      // 既存の Group があれば中身だけ破棄して再利用する（overlap は create() で1回だけ登録しているため同じ参照が必要）
+      if (this.coins) {
+        this.coins.clear(true, true);
+      } else {
+        this.coins = this.add.group();
+      }
       const objectLayer = this.map.getObjectLayer(OBJECT_LAYER_NAME);
       if (!objectLayer) return;
       const coinObjects = objectLayer.objects.filter(
@@ -892,7 +896,6 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       this.coinCount = 0;
       this.updateCoinsText();
       this.setupCoins();
-      // コイン取得の overlap は create() で1回だけ登録済み。再登録すると1枚で2回発火するためここでは呼ばない
 
       this.restorePlayerAppearance();
       this.player.setVisible(true);
