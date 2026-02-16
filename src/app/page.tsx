@@ -11,7 +11,16 @@ export default function GamePage() {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-gray-900 p-4">
-      <div ref={gameRef} style={{ width: GAME_WIDTH, height: GAME_HEIGHT }} />
+      <div
+        ref={gameRef}
+        style={{
+          width: GAME_WIDTH,
+          height: GAME_HEIGHT,
+          touchAction: "none",
+          userSelect: "none",
+          WebkitUserSelect: "none",
+        }}
+      />
       <VirtualControls />
     </div>
   );

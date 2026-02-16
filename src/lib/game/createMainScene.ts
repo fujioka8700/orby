@@ -217,6 +217,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       this.isGameClear = false;
       this.gameClearScreenRef = null;
       this.gameClearBGM = null;
+      this.gameStarted = false;
       this.physics.resume();
       this.livesCount = LIVES_INITIAL;
       this.coinCount = 0;
@@ -794,7 +795,21 @@ export function createMainScene(PhaserLib: typeof Phaser) {
     private setupInput() {
       if (this.input.keyboard) {
         this.cursors = this.input.keyboard.createCursorKeys();
+      } else {
+        // キーボードがない環境（iOS など）ではスタブを代入し、VirtualControls のみで操作する
+        this.cursors = this.createStubCursorKeys();
       }
+    }
+
+    /** キーボードなし用の CursorKeys スタブ（up/left/right/down は常に isDown: false） */
+    private createStubCursorKeys(): Phaser.Types.Input.Keyboard.CursorKeys {
+      const noop = { isDown: false };
+      return {
+        up: noop,
+        down: noop,
+        left: noop,
+        right: noop,
+      } as Phaser.Types.Input.Keyboard.CursorKeys;
     }
 
     private setupPlayerEnemyOverlap() {

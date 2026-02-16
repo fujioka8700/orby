@@ -34,7 +34,7 @@ export const USE_IMAGE_BACKGROUND = true;
  * - false: タイトル画面を表示し、タッチでゲーム開始
  * DEBUG = false のときは常にタイトル画面から開始する。
  */
-export const SKIP_TITLE_SCREEN = true;
+export const SKIP_TITLE_SCREEN = false;
 
 /**
  * 単一画像用の画面にする（DEBUG 時のみ有効。他デバッグ項目は無視）。
@@ -51,7 +51,7 @@ export const CREATE_A_SINGLE_IMAGE_BACKGROUND = 0x808080;
  * - 2: 2nd ステージ（2nd_stage_tilemap.json）
  * DEBUG = false のときは常に 1st ステージを表示する。
  */
-export const STAGE_NUMBER = 2;
+export const STAGE_NUMBER = 1;
 
 /**
  * BGM をオフにするか（DEBUG 時のみ有効）。

@@ -74,6 +74,18 @@
                  "width":48,
                  "x":160,
                  "y":160
+                }, 
+                {
+                 "gid":29,
+                 "height":48,
+                 "id":6,
+                 "name":"Bouncepad_Red",
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":48,
+                 "x":48,
+                 "y":240
                 }],
          "opacity":1,
          "type":"objectgroup",
@@ -82,7 +94,7 @@
          "y":0
         }],
  "nextlayerid":3,
- "nextobjectid":6,
+ "nextobjectid":7,
  "orientation":"orthogonal",
  "renderorder":"right-down",
  "tiledversion":"1.11.2",
@@ -299,6 +311,19 @@
          "imagewidth":144,
          "margin":0,
          "name":"Bird_1",
+         "spacing":0,
+         "tilecount":3,
+         "tileheight":48,
+         "tilewidth":48
+        }, 
+        {
+         "columns":3,
+         "firstgid":27,
+         "image":"..\/graphics\/environment\/interactive\/Bouncepad_Red.png",
+         "imageheight":48,
+         "imagewidth":144,
+         "margin":0,
+         "name":"Bouncepad_Red",
          "spacing":0,
          "tilecount":3,
          "tileheight":48,

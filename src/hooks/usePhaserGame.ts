@@ -14,15 +14,23 @@ export function usePhaserGame(containerRef: RefObject<HTMLDivElement | null>) {
 
     const init = async () => {
       if (typeof document !== "undefined" && document.fonts?.load) {
-        await document.fonts.load(`16px "${UI_FONT_FAMILY}"`);
-        await document.fonts.ready;
+        try {
+          await Promise.race([
+            document.fonts.load(`16px "${UI_FONT_FAMILY}"`).then(() => document.fonts.ready),
+            new Promise<void>((resolve) => setTimeout(resolve, 3000)),
+          ]);
+        } catch {
+          // iOS などで document.fonts が失敗してもゲームは起動する（Phaser 側でフォント利用）
+        }
       }
       const P = (await import("phaser")).default;
       const GameScene = createMainScene(P);
       game = new P.Game(getPhaserGameConfig(container, GameScene, P));
     };
 
-    init();
+    init().catch((err) => {
+      console.error("Phaser game init failed:", err);
+    });
 
     return () => {
       if (game) {

@@ -5,9 +5,9 @@
     },
     "activeFile": "assets/maps/2nd_stage.tmx",
     "expandedProjectPaths": [
-        "sandbox",
-        ".",
         "assets/maps",
+        ".",
+        "sandbox",
         "assets"
     ],
     "fileStates": {
@@ -19,8 +19,8 @@
             "scale": 2,
             "selectedLayer": 2,
             "viewCenter": {
-                "x": 3115,
-                "y": 172
+                "x": 1592.5,
+                "y": 263.5
             }
         },
         "assets/maps/1st_stage.tmx#Coin": {
@@ -75,9 +75,15 @@
             "scale": 2,
             "selectedLayer": 1,
             "viewCenter": {
-                "x": 2817,
-                "y": 108.5
+                "x": 104.5,
+                "y": 184
             }
+        },
+        "assets/maps/2nd_stage.tmx#Bird_1": {
+            "scaleInDock": 1
+        },
+        "assets/maps/2nd_stage.tmx#Bouncepad_Red": {
+            "scaleInDock": 1
         },
         "assets/maps/2nd_stage.tmx#Cloud_Tileset": {
             "scaleInDock": 1,
