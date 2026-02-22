@@ -4,6 +4,8 @@ import {
   BACKGROUND_ASSET,
   BIRD_1_ASSET,
   BIRD_1_FRAME_SIZE,
+  BOUNCEPAD_RED_ASSET,
+  BOUNCEPAD_RED_SIZE,
   BGM_GAMECLEAR_AUDIO_ASSET,
   BGM_STAGE1_AUDIO_ASSET,
   SFX_GAMESTART_AUDIO_ASSET,
@@ -23,6 +25,8 @@ import {
   PLAYER_GOAL_AUDIO_ASSET,
   PLAYER_MISS_ASSET,
   PLAYER_MISS_AUDIO_ASSET,
+  PLATFORM_FRAME_HEIGHT,
+  PLATFORM_FRAME_WIDTH,
   SPIDER_ASSET,
   BACKGROUND_SKY_0_ASSET,
   BACKGROUND_SKY_1_ASSET,
@@ -41,9 +45,13 @@ function getEffectiveStageNumber(): 1 | 2 {
 export function loadGameAssets(scene: Phaser.Scene): void {
   const { load } = scene;
   load.image(ASSET_KEYS.TILESET_GRASS, TILEMAP_ASSETS.tilesetGrass);
-  load.image(
+  load.spritesheet(
     ASSET_KEYS.TILESET_PLATFORM,
     TILEMAP_ASSETS.tilesetPlatform,
+    {
+      frameWidth: PLATFORM_FRAME_WIDTH,
+      frameHeight: PLATFORM_FRAME_HEIGHT,
+    },
   );
   load.image(
     ASSET_KEYS.TILESET_GRASS_ONEWAY,
@@ -55,11 +63,17 @@ export function loadGameAssets(scene: Phaser.Scene): void {
     TILEMAP_ASSETS.tilesetGrassRock,
   );
   load.image(ASSET_KEYS.TILESET_CLOUD, TILEMAP_ASSETS.tilesetCloud);
-  const tilemapUrl =
-    getEffectiveStageNumber() === 2
-      ? TILEMAP_ASSETS.tilemap2nd
-      : TILEMAP_ASSETS.tilemap;
+  const is2ndStage = getEffectiveStageNumber() === 2;
+  const tilemapUrl = is2ndStage
+    ? TILEMAP_ASSETS.tilemap2nd
+    : TILEMAP_ASSETS.tilemap;
   load.tilemapTiledJSON(ASSET_KEYS.TILEMAP, tilemapUrl);
+  if (is2ndStage) {
+    load.spritesheet(ASSET_KEYS.BOUNCEPAD_RED, BOUNCEPAD_RED_ASSET, {
+      frameWidth: BOUNCEPAD_RED_SIZE,
+      frameHeight: BOUNCEPAD_RED_SIZE,
+    });
+  }
   load.spritesheet(ASSET_KEYS.PLAYER, PLAYER_ASSET, {
     frameWidth: GAME_CONSTANTS.PLAYER.FRAME_WIDTH,
     frameHeight: GAME_CONSTANTS.PLAYER.FRAME_HEIGHT,

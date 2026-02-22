@@ -4,6 +4,18 @@ import {
   ASSET_KEYS,
   BIRD_1_FRAME_SIZE,
   BIRD_1_OBJECT_NAME,
+  BOUNCEPAD_ANIM_KEY,
+  BOUNCEPAD_BOUNCE_VELOCITY,
+  BOUNCEPAD_SUPER_BOUNCE_VELOCITY,
+  BOUNCEPAD_BODY_OFFSET,
+  BOUNCEPAD_BODY_SIZE,
+  BOUNCEPAD_STANDING_HORIZONTAL_MARGIN,
+  BOUNCEPAD_STANDING_VERTICAL_MARGIN_BOTTOM,
+  BOUNCEPAD_STANDING_VERTICAL_MARGIN_TOP,
+  BOUNCEPAD_SUPER_JUMP_WINDOW_MS,
+  BOUNCEPAD_RED_DISPLAY_FRAME,
+  BOUNCEPAD_RED_OBJECT_NAME,
+  BOUNCEPAD_RED_SIZE,
   COIN_OBJECT_NAME,
   COIN_SIZE,
   ENEMY_OBJECT_NAME,
@@ -20,7 +32,10 @@ import {
   GOAL_FLAG_OBJECT_NAMES,
   GOAL_FLAG_SIZE,
   LIVES_INITIAL,
+  MOVING_PLATFORMS_LAYER_NAME,
   OBJECT_LAYER_NAME,
+  PLATFORM_FEET_CHECK_OFFSET,
+  PLATFORM_FIRST_GID,
   PLAYER_GAME_COMPLETE_ASSET,
   PLAYER_MISS_ASSET,
   SCENE_BACKGROUND_COLOR,
@@ -32,7 +47,14 @@ import {
   UI_NUMBER_TEXT_STYLE,
 } from "@/lib/game/constants";
 import { updateEnemies as updateEnemiesAI } from "@/lib/game/enemyAI";
+import {
+  createMovingPlatforms,
+  isMovingPlatformOneWayCollision,
+  resetMovingPlatforms as resetMovingPlatformsModule,
+  updateMovingPlatforms as updateMovingPlatformsModule,
+} from "@/lib/game/movingPlatforms";
 import { createGameClearScreen } from "@/lib/game/gameClearUI";
+import { getGameContainer, removeResumeListeners } from "@/lib/game/domUtils";
 import { createGameOverUI } from "@/lib/game/gameOverUI";
 import { globalControls } from "@/lib/game/globalControls";
 import { loadGameAssets } from "@/lib/game/loadGameAssets";
@@ -87,7 +109,27 @@ export function createMainScene(PhaserLib: typeof Phaser) {
     private gameOverOverlay: Phaser.GameObjects.Rectangle | null = null;
     private gameOverText: Phaser.GameObjects.Text | null = null;
     private gameOverContinueText: Phaser.GameObjects.Text | null = null;
+    /** GAMEOVER 再開を二重に呼ばないためのフラグ */
+    private gameOverRestartFired = false;
+    /** コンテナに登録した再開用リスナー除去用（iOS Safari でキャンバス外タッチを受け取る） */
+    private gameOverContainer: HTMLElement | null = null;
+    private gameOverContainerHandler: (() => void) | null = null;
     private goalFlagSprite: Phaser.GameObjects.Sprite | null = null;
+    private bouncepads!: Phaser.GameObjects.Group;
+    /** トランポリン：着地ごとに1回だけ跳ねるため、現在乗っている pad を保持 */
+    private playerOnBouncepad: Phaser.GameObjects.Sprite | null = null;
+    /** 現在の上昇がトランポリン由来なら true（ジャンプキャンセルを適用しない） */
+    private jumpedFromTrampoline = false;
+    /** 大ジャンプ中なら true（ジャンプキャンセルを適用しない） */
+    private jumpedFromTrampolineSuper = false;
+    /** 空中でジャンプを押した時刻（着地寸前判定用）。0 は未押下 */
+    private lastJumpPressedWhileInAir = 0;
+    /** 2nd ステージ: 動く床（Physics Group、方法A: 16pxタイルを3枚ずつ同期制御） */
+    private movingPlatforms: Phaser.Physics.Arcade.Group | null = null;
+    /** 現在乗っている動く床（位置同期用。離れたら null） */
+    private playerOnMovingPlatform: Phaser.Physics.Arcade.Sprite | null = null;
+    /** 前フレームの動く床の X（deltaX 計算用） */
+    private lastMovingPlatformX = 0;
     private goalReached = false;
     private goalText: Phaser.GameObjects.Text | null = null;
     private isGameClear = false;
@@ -142,6 +184,10 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       this.setupPlayerCollision();
       createGameAnimations(this);
       this.setupGoalFlag();
+      if (this.getEffectiveStageNumber() === 2) {
+        this.createBouncepadAnimation();
+        this.setupBouncepads();
+      }
       this.setupCoins();
       this.setupPlayerCoinOverlap();
       this.setupPlayerGoalOverlap();
@@ -218,6 +264,10 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       this.gameClearScreenRef = null;
       this.gameClearBGM = null;
       this.gameStarted = false;
+      this.playerOnBouncepad = null;
+      this.jumpedFromTrampoline = false;
+      this.jumpedFromTrampolineSuper = false;
+      this.lastJumpPressedWhileInAir = 0;
       this.physics.resume();
       this.livesCount = LIVES_INITIAL;
       this.coinCount = 0;
@@ -319,6 +369,8 @@ export function createMainScene(PhaserLib: typeof Phaser) {
         return;
       }
       this.platformLayer = platformLayer;
+      this.platformLayer.setDepth(0);
+      this.platformLayer.setVisible(true);
 
       this.platformLayer.setCollisionByProperty({ collides: true });
       this.platformLayer.forEachTile((tile) => {
@@ -329,6 +381,45 @@ export function createMainScene(PhaserLib: typeof Phaser) {
           tile.collideRight = false;
         }
       });
+
+      if (this.getEffectiveStageNumber() === 2) {
+        this.setupMovingPlatforms();
+      }
+    }
+
+    /** 2nd ステージ: MovingPlatforms レイヤーから動く床を生成する（方法A）。 */
+    private setupMovingPlatforms() {
+      this.movingPlatforms = createMovingPlatforms(
+        this,
+        this.map,
+        MOVING_PLATFORMS_LAYER_NAME,
+        PLATFORM_FIRST_GID,
+        this.getTiledPropertyNumber.bind(this),
+      );
+    }
+
+    /** 動く床を初期位置・初速に戻す（ミス復帰・restart 用） */
+    private resetMovingPlatforms() {
+      resetMovingPlatformsModule(this.movingPlatforms);
+    }
+
+    /** 動く床に乗っている間、床の移動量をプレイヤーに加算して位置を同期する（置いていかれ防止）。 */
+    private syncPlayerToMovingPlatform() {
+      if (!this.playerOnMovingPlatform) return;
+      const playerBody = this.player.body as Phaser.Physics.Arcade.Body;
+      const platformBody = this.playerOnMovingPlatform.body as Phaser.Physics.Arcade.Body;
+      if (!playerBody.touching.down || !platformBody.touching.up) {
+        this.playerOnMovingPlatform = null;
+        return;
+      }
+      const platformX = this.playerOnMovingPlatform.x;
+      this.player.x += platformX - this.lastMovingPlatformX;
+      this.lastMovingPlatformX = platformX;
+    }
+
+    /** 動く床の往復: マスターが距離に達したら同じ platformID の速度を反転する */
+    private updateMovingPlatforms() {
+      updateMovingPlatformsModule(this.movingPlatforms);
     }
 
     private setupBackground() {
@@ -422,6 +513,22 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       return tilesets;
     }
 
+    /** グループが再利用可能か（scene 再開時などで clear して詰め替え可能） */
+    private canReuseGroup(
+      group: Phaser.GameObjects.Group | undefined,
+    ): boolean {
+      try {
+        return (
+          !!group &&
+          group.scene === this &&
+          typeof group.getChildren === "function" &&
+          Array.isArray(group.getChildren())
+        );
+      } catch {
+        return false;
+      }
+    }
+
     /** オブジェクトレイヤーから名前が一致する最初のオブジェクトを返す */
     private findMapObject(
       ...names: string[]
@@ -449,6 +556,21 @@ export function createMainScene(PhaserLib: typeof Phaser) {
         return typeof v === "number" ? v : undefined;
       }
       return undefined;
+    }
+
+    /** Tiled オブジェクトのカスタムプロパティ（bool）を取得する */
+    private getTiledPropertyBool(
+      obj: Phaser.Types.Tilemaps.TiledObject,
+      name: string,
+    ): boolean | undefined {
+      const raw = obj as {
+        properties?: Array<{ name: string; value: unknown }>;
+      };
+      const props = raw.properties;
+      if (!Array.isArray(props)) return undefined;
+      const p = props.find((pr) => pr.name === name);
+      if (p == null) return undefined;
+      return typeof p.value === "boolean" ? p.value : Boolean(p.value);
     }
 
     /** DEBUG 時は phaserConfig.PLAYER_START_POSITION（2nd ステージでは常に "Player"）、そうでなければ "Player" */
@@ -481,19 +603,155 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       }
     }
 
-    private setupCoins() {
-      // 既存の Group がこのシーンに属し有効なときだけ中身を破棄して再利用する（破棄済み Group で clear すると children 未定義で落ちる）
-      let canReuse = false;
-      try {
-        canReuse =
-          !!this.coins &&
-          this.coins.scene === this &&
-          typeof this.coins.getChildren === "function" &&
-          Array.isArray(this.coins.getChildren());
-      } catch {
-        canReuse = false;
+    /** 2nd ステージ用：トランポリン（bounce）アニメを登録。Frame 2=待機, 1=縮む, 0=伸びる */
+    private createBouncepadAnimation() {
+      if (this.anims.exists(BOUNCEPAD_ANIM_KEY)) return;
+      this.anims.create({
+        key: BOUNCEPAD_ANIM_KEY,
+        frames: [
+          { key: ASSET_KEYS.BOUNCEPAD_RED, frame: 2 },
+          { key: ASSET_KEYS.BOUNCEPAD_RED, frame: 1 },
+          { key: ASSET_KEYS.BOUNCEPAD_RED, frame: 0 },
+          { key: ASSET_KEYS.BOUNCEPAD_RED, frame: 2 },
+        ],
+        frameRate: 15,
+        repeat: 0,
+      });
+    }
+
+    /** 2nd ステージ用：Bouncepad_Red をトランポリンとして配置し、プレイヤーが乗ると跳ね上げる */
+    private setupBouncepads() {
+      if (!this.textures.exists(ASSET_KEYS.BOUNCEPAD_RED)) return;
+      const objectLayer = this.map.getObjectLayer(OBJECT_LAYER_NAME);
+      if (!objectLayer) return;
+      if (this.canReuseGroup(this.bouncepads)) {
+        this.bouncepads.clear(true, true);
+      } else {
+        this.bouncepads = this.add.group();
       }
-      if (canReuse) {
+      const bouncepadObjects = objectLayer.objects.filter(
+        (obj) => obj.name === BOUNCEPAD_RED_OBJECT_NAME,
+      );
+      for (const obj of bouncepadObjects) {
+        if (obj.x === undefined || obj.y === undefined) continue;
+        const pad = this.add.sprite(
+          obj.x,
+          obj.y - 48,
+          ASSET_KEYS.BOUNCEPAD_RED,
+          2,
+        );
+        pad.setOrigin(0, 0);
+        pad.setDisplaySize(BOUNCEPAD_RED_SIZE, BOUNCEPAD_RED_SIZE);
+        pad.setDepth(100);
+        this.physics.add.existing(pad, true);
+        const body = pad.body as Phaser.Physics.Arcade.StaticBody;
+        body.setSize(BOUNCEPAD_BODY_SIZE, BOUNCEPAD_BODY_SIZE);
+        body.setOffset(BOUNCEPAD_BODY_OFFSET, BOUNCEPAD_BODY_OFFSET);
+        this.bouncepads.add(pad);
+      }
+      this.physics.add.collider(
+        this.player,
+        this.bouncepads,
+        (playerObj, trampolineObj) => {
+          this.onTrampolineLand(
+            playerObj as Phaser.Physics.Arcade.Sprite,
+            trampolineObj as Phaser.GameObjects.Sprite,
+          );
+        },
+        (playerObj, trampolineObj) =>
+          this.isTrampolineLandingFromAbove(
+            (playerObj as Phaser.Physics.Arcade.Sprite).body as Phaser.Physics.Arcade.Body,
+            (trampolineObj as Phaser.GameObjects.Sprite).body as Phaser.Physics.Arcade.StaticBody,
+          ),
+      );
+    }
+
+    /** トランポリンに上から着地したときの処理（跳ね・大ジャンプ判定） */
+    private onTrampolineLand(
+      player: Phaser.Physics.Arcade.Sprite,
+      trampoline: Phaser.GameObjects.Sprite,
+    ) {
+      const playerBody = player.body as Phaser.Physics.Arcade.Body;
+      if (!playerBody.touching.down) return;
+      if (this.playerOnBouncepad === trampoline) return;
+      this.playerOnBouncepad = trampoline;
+      this.jumpedFromTrampoline = true;
+      trampoline.play(BOUNCEPAD_ANIM_KEY);
+      const jumpPressedThisFrame =
+        (this.cursors.up.isDown || globalControls.up) && !this.wasJumpPressed;
+      const justBeforeLanding =
+        jumpPressedThisFrame ||
+        (this.lastJumpPressedWhileInAir > 0 &&
+          this.time.now - this.lastJumpPressedWhileInAir <
+            BOUNCEPAD_SUPER_JUMP_WINDOW_MS);
+      this.lastJumpPressedWhileInAir = 0;
+      if (justBeforeLanding) {
+        this.jumpedFromTrampolineSuper = true;
+        player.setVelocityY(BOUNCEPAD_SUPER_BOUNCE_VELOCITY);
+      } else {
+        this.jumpedFromTrampolineSuper = false;
+        player.setVelocityY(BOUNCEPAD_BOUNCE_VELOCITY);
+      }
+    }
+
+    /** プレイヤーがトランポリンに上から着地したか（processCallback 用） */
+    private isTrampolineLandingFromAbove(
+      playerBody: Phaser.Physics.Arcade.Body,
+      trampolineBody: Phaser.Physics.Arcade.StaticBody,
+    ): boolean {
+      const trampolineTop = trampolineBody.top;
+      const playerBottom = playerBody.bottom;
+      return (
+        playerBottom >= trampolineTop - 2 &&
+        playerBottom <= trampolineTop + 12 &&
+        playerBody.velocity.y >= -15
+      );
+    }
+
+    /** 足元に platform レイヤーの当たりタイルがあるか */
+    private isPlayerStandingOnPlatformTile(): boolean {
+      const playerBody = this.player.body as Phaser.Physics.Arcade.Body;
+      const x = playerBody.center.x;
+      const feetY = playerBody.bottom;
+      for (const y of [feetY, feetY + PLATFORM_FEET_CHECK_OFFSET]) {
+        const tile = this.platformLayer.getTileAtWorldXY(x, y);
+        if (
+          tile &&
+          ((tile.properties?.collides as boolean) ||
+            (tile.properties?.oneWay as boolean))
+        ) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    /** プレイヤーが Bouncepad_Red の上に立っているか（その上だけなら通常ジャンプ不可）。足元に platform タイルがあれば false（通常ジャンプ可）。 */
+    private isPlayerStandingOnBouncepad(): boolean {
+      if (!this.bouncepads) return false;
+      const playerBody = this.player.body as Phaser.Physics.Arcade.Body;
+      if (!playerBody.touching.down && !playerBody.blocked.down) return false;
+      if (this.isPlayerStandingOnPlatformTile()) return false;
+      const playerBottom = playerBody.bottom;
+      const playerCenterX = playerBody.center.x;
+      for (const pad of this.bouncepads.getChildren() as Phaser.GameObjects.Sprite[]) {
+        const padBody = pad.body as Phaser.Physics.Arcade.StaticBody;
+        const padTop = padBody.top;
+        const padLeft = padBody.left;
+        const padRight = padBody.right;
+        const verticalOnPad =
+          playerBottom >= padTop - BOUNCEPAD_STANDING_VERTICAL_MARGIN_TOP &&
+          playerBottom <= padTop + BOUNCEPAD_STANDING_VERTICAL_MARGIN_BOTTOM;
+        const horizontallyAbovePad =
+          playerCenterX >= padLeft - BOUNCEPAD_STANDING_HORIZONTAL_MARGIN &&
+          playerCenterX <= padRight + BOUNCEPAD_STANDING_HORIZONTAL_MARGIN;
+        if (verticalOnPad && horizontallyAbovePad) return true;
+      }
+      return false;
+    }
+
+    private setupCoins() {
+      if (this.canReuseGroup(this.coins)) {
         this.coins.clear(true, true);
       } else {
         this.coins = this.add.group();
@@ -654,6 +912,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
         GAME_CONSTANTS.PLAYER.ACTUAL_HEIGHT,
       );
       playerBody.setCollideWorldBounds(true);
+      this.player.setDepth(101);
     }
 
     private applyPlayerBodySize(
@@ -716,6 +975,52 @@ export function createMainScene(PhaserLib: typeof Phaser) {
           }
           return false;
         },
+      );
+
+      if (this.movingPlatforms) {
+        this.physics.add.collider(
+          this.player,
+          this.movingPlatforms,
+          (a, b) =>
+            this.onPlayerHitMovingPlatform(
+              a as Phaser.Types.Physics.Arcade.GameObjectWithBody,
+              b as Phaser.Types.Physics.Arcade.GameObjectWithBody,
+            ),
+          (a, b) =>
+            this.processMovingPlatformCollision(
+              a as Phaser.Types.Physics.Arcade.GameObjectWithBody,
+              b as Phaser.Types.Physics.Arcade.GameObjectWithBody,
+            ),
+          this,
+        );
+      }
+    }
+
+    /** プレイヤーが動く床の上に乗ったときに呼ばれる。乗っている床を記録し、update で位置を同期する。 */
+    private onPlayerHitMovingPlatform(
+      playerObj: Phaser.Types.Physics.Arcade.GameObjectWithBody,
+      platformObj: Phaser.Types.Physics.Arcade.GameObjectWithBody,
+    ): void {
+      const player = playerObj as Phaser.Physics.Arcade.Sprite;
+      const platform = platformObj as Phaser.Physics.Arcade.Sprite;
+      const playerBody = player.body as Phaser.Physics.Arcade.Body;
+      const platformBody = platform.body as Phaser.Physics.Arcade.Body;
+      if (playerBody.touching.down && platformBody.touching.up) {
+        if (this.playerOnMovingPlatform !== platform) {
+          this.lastMovingPlatformX = platform.x;
+        }
+        this.playerOnMovingPlatform = platform;
+      }
+    }
+
+    /** 動く床との当たりは上からのみ有効（横・下は無効） */
+    private processMovingPlatformCollision(
+      playerObj: Phaser.Types.Physics.Arcade.GameObjectWithBody,
+      platformObj: Phaser.Types.Physics.Arcade.GameObjectWithBody,
+    ): boolean {
+      return isMovingPlatformOneWayCollision(
+        playerObj as Phaser.Physics.Arcade.Sprite,
+        platformObj as Phaser.Physics.Arcade.Sprite,
       );
     }
 
@@ -782,6 +1087,15 @@ export function createMainScene(PhaserLib: typeof Phaser) {
             enemy.setFlipX(enemy.moveDirection > 0);
           }
         });
+        if (this.movingPlatforms) {
+          this.physics.add.collider(enemy, this.movingPlatforms, () => {
+            const body = enemy.body as Phaser.Physics.Arcade.Body;
+            if (body.blocked.left || body.blocked.right) {
+              enemy.moveDirection *= -1;
+              enemy.setFlipX(enemy.moveDirection > 0);
+            }
+          });
+        }
 
         this.enemies.push(enemy);
         this.enemyStartPositions.push({
@@ -886,6 +1200,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
           this.player.setPosition(this.playerStartX, this.playerStartY);
           playerBody.setVelocity(0, 0);
           this.resetEnemiesToStartPositions();
+          this.resetMovingPlatforms();
           this.startCameraFollow();
           this.invincibleUntil =
             this.time.now + GAME_CONSTANTS.PLAYER.INVINCIBLE_DURATION_MS;
@@ -968,6 +1283,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
 
     private showGameOver() {
       this.isGameOver = true;
+      this.gameOverRestartFired = false;
       this.player.setVisible(false);
       this.physics.pause();
       this.stopGameBGM();
@@ -977,20 +1293,35 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       this.gameOverText = ui.gameOverText;
       this.gameOverContinueText = ui.continueText;
 
+      this.input.once("pointerdown", this.restartFromGameOver, this);
+      this.addGameOverContainerListeners();
       const gameOverSound = this.sound.add(ASSET_KEYS.PLAYER_GAMEOVER);
-      gameOverSound.once("complete", () => {
-        this.input.once("pointerdown", this.restartFromGameOver, this);
-      });
       gameOverSound.play();
     }
 
+    /** コンテナに touchstart/pointerdown を登録（iOS Safari でレターボックスタップでも再開できるようにする） */
+    private addGameOverContainerListeners() {
+      const container = getGameContainer(this);
+      if (!container) return;
+      const handler = () => this.restartFromGameOver();
+      container.addEventListener("touchstart", handler, { passive: true });
+      container.addEventListener("pointerdown", handler);
+      this.gameOverContainer = container;
+      this.gameOverContainerHandler = handler;
+    }
+
     private restartFromGameOver() {
+      if (this.gameOverRestartFired) return;
+      this.gameOverRestartFired = true;
       this.destroyGameOverUI();
       this.restart();
     }
 
-    /** GAME OVER 表示用のオーバーレイ・テキストを破棄する */
+    /** GAME OVER 表示用のオーバーレイ・テキストとコンテナリスナーを破棄する */
     private destroyGameOverUI() {
+      removeResumeListeners(this.gameOverContainer, this.gameOverContainerHandler);
+      this.gameOverContainer = null;
+      this.gameOverContainerHandler = null;
       this.gameOverOverlay?.destroy();
       this.gameOverOverlay = null;
       this.gameOverText?.destroy();
@@ -1037,6 +1368,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       playerBody.checkCollision.none = false;
 
       this.resetEnemiesToStartPositions();
+      this.resetMovingPlatforms();
       this.physics.resume();
       this.startCameraFollow();
       this.invincibleUntil = 0;
@@ -1091,6 +1423,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       const cameraBottom = this.cameras.main.scrollY + this.cameras.main.height;
 
       if (this.isInFallDeathTransition) {
+        this.updateMovingPlatforms();
         if (this.isWaitingForFallDeathOffScreen) {
           updateEnemiesAI(this, this.enemies, this.platformLayer);
           if (playerBody.bottom > cameraBottom) {
@@ -1102,6 +1435,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       }
 
       if (this.isPlayingMissSequence) {
+        this.updateMovingPlatforms();
         updateEnemiesAI(this, this.enemies, this.platformLayer);
         if (playerBody.bottom > cameraBottom) {
           this.finishMissSequence();
@@ -1118,6 +1452,15 @@ export function createMainScene(PhaserLib: typeof Phaser) {
 
       this.handleJump(playerBody);
       this.handleMovement(playerBody, deltaTime);
+      this.updateMovingPlatforms();
+      this.syncPlayerToMovingPlatform();
+      if (
+        this.playerOnBouncepad &&
+        this.bouncepads &&
+        !this.physics.overlap(this.player, this.playerOnBouncepad)
+      ) {
+        this.playerOnBouncepad = null;
+      }
       updateEnemiesAI(this, this.enemies, this.platformLayer);
       this.updateInvincibilityBlink();
     }
@@ -1139,13 +1482,33 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       const jumpInput = this.cursors.up.isDown || globalControls.up;
       const jumpJustPressed = jumpInput && !this.wasJumpPressed && onFloor;
 
+      if (onFloor) {
+        if (!this.isPlayerStandingOnBouncepad()) {
+          this.jumpedFromTrampoline = false;
+          this.jumpedFromTrampolineSuper = false;
+        }
+        this.lastJumpPressedWhileInAir = 0;
+      } else {
+        if (playerBody.velocity.y >= 0) {
+          this.jumpedFromTrampoline = false;
+          this.jumpedFromTrampolineSuper = false;
+        }
+        if (jumpInput && !this.wasJumpPressed) {
+          this.lastJumpPressedWhileInAir = this.time.now;
+        }
+      }
+
       if (jumpJustPressed) {
-        playerBody.setVelocityY(GAME_CONSTANTS.MOVEMENT.JUMP_VELOCITY);
-        this.player.play("jump", true);
-        this.sound.play(ASSET_KEYS.PLAYER_JUMP);
+        if (!this.isPlayerStandingOnBouncepad()) {
+          playerBody.setVelocityY(GAME_CONSTANTS.MOVEMENT.JUMP_VELOCITY);
+          this.player.play("jump", true);
+          this.sound.play(ASSET_KEYS.PLAYER_JUMP);
+        }
       }
 
       if (
+        !this.jumpedFromTrampoline &&
+        !this.jumpedFromTrampolineSuper &&
         !jumpInput &&
         this.wasJumpPressed &&
         playerBody.velocity.y < 0 &&

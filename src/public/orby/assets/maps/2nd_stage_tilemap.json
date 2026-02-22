@@ -30,6 +30,101 @@
         }, 
         {
          "draworder":"topdown",
+         "id":6,
+         "name":"movingPlatforms",
+         "objects":[
+                {
+                 "gid":30,
+                 "height":16,
+                 "id":16,
+                 "name":"",
+                 "properties":[
+                        {
+                         "name":"distance",
+                         "type":"int",
+                         "value":50
+                        }, 
+                        {
+                         "name":"platformID",
+                         "type":"int",
+                         "value":1
+                        }, 
+                        {
+                         "name":"speed",
+                         "type":"int",
+                         "value":30
+                        }],
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":16,
+                 "x":48,
+                 "y":192
+                }, 
+                {
+                 "gid":31,
+                 "height":16,
+                 "id":17,
+                 "name":"",
+                 "properties":[
+                        {
+                         "name":"distance",
+                         "type":"int",
+                         "value":50
+                        }, 
+                        {
+                         "name":"platformID",
+                         "type":"int",
+                         "value":1
+                        }, 
+                        {
+                         "name":"speed",
+                         "type":"int",
+                         "value":30
+                        }],
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":16,
+                 "x":64,
+                 "y":192
+                }, 
+                {
+                 "gid":32,
+                 "height":16,
+                 "id":18,
+                 "name":"",
+                 "properties":[
+                        {
+                         "name":"distance",
+                         "type":"int",
+                         "value":50
+                        }, 
+                        {
+                         "name":"platformID",
+                         "type":"int",
+                         "value":1
+                        }, 
+                        {
+                         "name":"speed",
+                         "type":"int",
+                         "value":30
+                        }],
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":16,
+                 "x":80,
+                 "y":192
+                }],
+         "opacity":1,
+         "type":"objectgroup",
+         "visible":true,
+         "x":0,
+         "y":0
+        }, 
+        {
+         "draworder":"topdown",
          "id":2,
          "name":"objectsLayer",
          "objects":[
@@ -84,7 +179,7 @@
                  "type":"",
                  "visible":true,
                  "width":48,
-                 "x":48,
+                 "x":144,
                  "y":240
                 }],
          "opacity":1,
@@ -93,8 +188,8 @@
          "x":0,
          "y":0
         }],
- "nextlayerid":3,
- "nextobjectid":7,
+ "nextlayerid":7,
+ "nextobjectid":19,
  "orientation":"orthogonal",
  "renderorder":"right-down",
  "tiledversion":"1.11.2",
@@ -328,6 +423,82 @@
          "tilecount":3,
          "tileheight":48,
          "tilewidth":48
+        }, 
+        {
+         "columns":3,
+         "firstgid":30,
+         "image":"..\/graphics\/environment\/interactive\/Platform.png",
+         "imageheight":16,
+         "imagewidth":48,
+         "margin":0,
+         "name":"Platform",
+         "spacing":0,
+         "tilecount":3,
+         "tileheight":16,
+         "tiles":[
+                {
+                 "id":0,
+                 "properties":[
+                        {
+                         "name":"distance",
+                         "type":"int",
+                         "value":150
+                        }, 
+                        {
+                         "name":"isMaster",
+                         "type":"bool",
+                         "value":true
+                        }, 
+                        {
+                         "name":"platformID",
+                         "type":"int",
+                         "value":0
+                        }, 
+                        {
+                         "name":"speed",
+                         "type":"int",
+                         "value":100
+                        }]
+                }, 
+                {
+                 "id":1,
+                 "properties":[
+                        {
+                         "name":"distance",
+                         "type":"int",
+                         "value":150
+                        }, 
+                        {
+                         "name":"platformID",
+                         "type":"int",
+                         "value":0
+                        }, 
+                        {
+                         "name":"speed",
+                         "type":"int",
+                         "value":100
+                        }]
+                }, 
+                {
+                 "id":2,
+                 "properties":[
+                        {
+                         "name":"distance",
+                         "type":"int",
+                         "value":150
+                        }, 
+                        {
+                         "name":"platformID",
+                         "type":"int",
+                         "value":0
+                        }, 
+                        {
+                         "name":"speed",
+                         "type":"int",
+                         "value":100
+                        }]
+                }],
+         "tilewidth":16
         }],
  "tilewidth":16,
  "type":"map",

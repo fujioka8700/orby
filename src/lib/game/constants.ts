@@ -72,6 +72,33 @@ export const GOAL_FLAG_ASSET = "/orby/assets/graphics/items/Flag_animation.png";
 export const GOAL_FLAG_SIZE = 32;
 export const GOAL_FLAG_FRAMES = 5;
 
+/** バウンスパッド（Bouncepad_Red）：48x48px、3コマ。2コマ目をマップに表示 */
+export const BOUNCEPAD_RED_ASSET =
+  "/orby/assets/graphics/environment/interactive/Bouncepad_Red.png";
+export const BOUNCEPAD_RED_SIZE = 48;
+export const BOUNCEPAD_RED_FRAMES = 3;
+/** マップ表示用フレーム（0-indexed）。2コマ目 = 1 */
+export const BOUNCEPAD_RED_DISPLAY_FRAME = 1;
+export const BOUNCEPAD_RED_OBJECT_NAME = "Bouncepad_Red";
+/** トランポリン（bounce）アニメのキー */
+export const BOUNCEPAD_ANIM_KEY = "bouncepad-bounce";
+/** トランポリンで跳ねたときの上方向初速度（通常ジャンプより強く） */
+export const BOUNCEPAD_BOUNCE_VELOCITY = -320;
+/** 着地寸前にジャンプボタンを押したときの大ジャンプ用初速度 */
+export const BOUNCEPAD_SUPER_BOUNCE_VELOCITY = -440;
+/** 着地「寸前」とみなす、空中でジャンプを押してから着地までの許容時間（ms） */
+export const BOUNCEPAD_SUPER_JUMP_WINDOW_MS = 100;
+/** トランポリン物理ボディのサイズ・オフセット（px） */
+export const BOUNCEPAD_BODY_SIZE = 16;
+export const BOUNCEPAD_BODY_OFFSET = 16;
+/** 「パッドの上に立っている」判定：足元の縦の許容（上方向・下方向のずれ px） */
+export const BOUNCEPAD_STANDING_VERTICAL_MARGIN_TOP = 8;
+export const BOUNCEPAD_STANDING_VERTICAL_MARGIN_BOTTOM = 24;
+/** 「パッドの上に立っている」判定：左右の許容（px） */
+export const BOUNCEPAD_STANDING_HORIZONTAL_MARGIN = 8;
+/** 足元の platform タイル判定で使う、下方向の余裕（px） */
+export const PLATFORM_FEET_CHECK_OFFSET = 2;
+
 /** コイン：16x16px */
 export const COIN_ASSET = "/orby/assets/graphics/items/Coin.png";
 export const COIN_SIZE = 16;
@@ -171,10 +198,15 @@ export const TITLE_COPYRIGHT_OFFSET_Y = 30;
 
 /** タイルマップのオブジェクトレイヤー名・オブジェクト名（Tiled と一致させる） */
 export const OBJECT_LAYER_NAME = "objectsLayer";
+/** 2nd ステージの動く床オブジェクトを置くレイヤー名（方法A: 16pxタイルを3枚ずつ Physics Group で制御） */
+export const MOVING_PLATFORMS_LAYER_NAME = "movingPlatforms";
 export const GOAL_FLAG_OBJECT_NAMES = ["Goal_flag", "goal_flag"] as const;
 export const COIN_OBJECT_NAME = "Coin";
 export const ENEMY_OBJECT_NAME = "Spider_1";
-export const ENEMY_OBJECT_NAMES = [ENEMY_OBJECT_NAME, BIRD_1_OBJECT_NAME] as const;
+export const ENEMY_OBJECT_NAMES = [
+  ENEMY_OBJECT_NAME,
+  BIRD_1_OBJECT_NAME,
+] as const;
 
 /** メインシーン・ゲーム背景色 */
 export const SCENE_BACKGROUND_COLOR = "#2c3e50";
@@ -198,20 +230,17 @@ export const PLAYER_GAME_COMPLETE_ASSET =
   "/orby/assets/graphics/characters/Player_game_complete.png";
 
 /** プレイヤー・ジャンプ効果音 */
-export const PLAYER_JUMP_AUDIO_ASSET =
-  "/orby/assets/audio/sfx/player/jump.mp3";
+export const PLAYER_JUMP_AUDIO_ASSET = "/orby/assets/audio/sfx/player/jump.mp3";
 
 /** プレイヤー・コイン取得効果音 */
 export const PLAYER_COIN_AUDIO_ASSET =
   "/orby/assets/audio/sfx/player/piriin.mp3";
 
 /** プレイヤー・ミス時効果音（敵接触・落下死など） */
-export const PLAYER_MISS_AUDIO_ASSET =
-  "/orby/assets/audio/sfx/player/miss.mp3";
+export const PLAYER_MISS_AUDIO_ASSET = "/orby/assets/audio/sfx/player/miss.mp3";
 
 /** プレイヤー・ゴール時効果音 */
-export const PLAYER_GOAL_AUDIO_ASSET =
-  "/orby/assets/audio/sfx/player/goal.mp3";
+export const PLAYER_GOAL_AUDIO_ASSET = "/orby/assets/audio/sfx/player/goal.mp3";
 /** ゴール音を止めて次の画面へ遷移するまでの「終了の何秒前」か（秒） */
 export const GOAL_SOUND_STOP_BEFORE_END_SEC = 1.5;
 
@@ -220,12 +249,10 @@ export const PLAYER_GAMEOVER_AUDIO_ASSET =
   "/orby/assets/audio/sfx/player/gameover.mp3";
 
 /** ステージ1（アクションゲーム）BGM */
-export const BGM_STAGE1_AUDIO_ASSET =
-  "/orby/assets/audio/bgm/stage1.mp3";
+export const BGM_STAGE1_AUDIO_ASSET = "/orby/assets/audio/bgm/stage1.mp3";
 
 /** ゲームクリア画面BGM */
-export const BGM_GAMECLEAR_AUDIO_ASSET =
-  "/orby/assets/audio/bgm/gameclear.mp3";
+export const BGM_GAMECLEAR_AUDIO_ASSET = "/orby/assets/audio/bgm/gameclear.mp3";
 
 /** タイトル画面タッチ時（ゲームスタート）効果音 */
 export const SFX_GAMESTART_AUDIO_ASSET =
@@ -239,6 +266,7 @@ export const ASSET_KEYS = {
   PLAYER: "player",
   SPIDER: "spider",
   BIRD_1: "bird1",
+  BOUNCEPAD_RED: "bouncepadRed",
   GOAL_FLAG: "goalFlag",
   BACKGROUND: "background",
   BACKGROUND_SKY_0: "backgroundSky0",
@@ -274,8 +302,13 @@ export const TILEMAP_ASSETS = {
   tilesetLeaf: "/orby/assets/graphics/environment/tilesets/Leaf_Tileset.png",
   tilesetGrassRock:
     "/orby/assets/graphics/environment/tilesets/Grass_Rock_Tileset.png",
-  tilesetCloud:
-    "/orby/assets/graphics/environment/tilesets/Cloud_Tileset.png",
+  tilesetCloud: "/orby/assets/graphics/environment/tilesets/Cloud_Tileset.png",
   tilemap: "/orby/assets/maps/1st_stage_tilemap.json",
   tilemap2nd: "/orby/assets/maps/2nd_stage_tilemap.json",
 } as const;
+
+/** Platform.png スプライトシート用（タイルマップの Platform タイルセット読み込み用） */
+export const PLATFORM_FRAME_WIDTH = 16;
+export const PLATFORM_FRAME_HEIGHT = 16;
+/** 2nd ステージタイルマップの Platform タイルセット firstgid（動く床の gid 判定用） */
+export const PLATFORM_FIRST_GID = 30;
