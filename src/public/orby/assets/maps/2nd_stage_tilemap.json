@@ -30,6 +30,53 @@
         }, 
         {
          "draworder":"topdown",
+         "id":7,
+         "name":"Coins",
+         "objects":[
+                {
+                 "gid":33,
+                 "height":16,
+                 "id":19,
+                 "name":"",
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":16,
+                 "x":48,
+                 "y":224
+                }, 
+                {
+                 "gid":33,
+                 "height":16,
+                 "id":20,
+                 "name":"",
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":16,
+                 "x":64,
+                 "y":224
+                }, 
+                {
+                 "gid":33,
+                 "height":16,
+                 "id":21,
+                 "name":"",
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":16,
+                 "x":80,
+                 "y":224
+                }],
+         "opacity":1,
+         "type":"objectgroup",
+         "visible":true,
+         "x":0,
+         "y":0
+        }, 
+        {
+         "draworder":"topdown",
          "id":6,
          "name":"movingPlatforms",
          "objects":[
@@ -188,8 +235,8 @@
          "x":0,
          "y":0
         }],
- "nextlayerid":7,
- "nextobjectid":19,
+ "nextlayerid":9,
+ "nextobjectid":22,
  "orientation":"orthogonal",
  "renderorder":"right-down",
  "tiledversion":"1.11.2",
@@ -498,6 +545,19 @@
                          "value":100
                         }]
                 }],
+         "tilewidth":16
+        }, 
+        {
+         "columns":1,
+         "firstgid":33,
+         "image":"..\/graphics\/items\/Coin.png",
+         "imageheight":16,
+         "imagewidth":16,
+         "margin":0,
+         "name":"Coin",
+         "spacing":0,
+         "tilecount":1,
+         "tileheight":16,
          "tilewidth":16
         }],
  "tilewidth":16,

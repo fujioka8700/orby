@@ -18,6 +18,7 @@ import {
   BOUNCEPAD_RED_SIZE,
   COIN_OBJECT_NAME,
   COIN_SIZE,
+  COINS_LAYER_NAME,
   ENEMY_OBJECT_NAME,
   ENEMY_OBJECT_NAMES,
   GAME_CLEAR_FADE_DURATION_MS,
@@ -498,6 +499,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       Leaf_Tileset: ASSET_KEYS.TILESET_LEAF,
       Grass_Rock_Tileset: ASSET_KEYS.TILESET_GRASS_ROCK,
       Cloud_Tileset: ASSET_KEYS.TILESET_CLOUD,
+      Coin: ASSET_KEYS.COIN,
     };
 
     private collectTilesets(): Phaser.Tilemaps.Tileset[] {
@@ -756,14 +758,30 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       } else {
         this.coins = this.add.group();
       }
+      const coinObjects: Array<{ x: number; y: number }> = [];
+
       const objectLayer = this.map.getObjectLayer(OBJECT_LAYER_NAME);
-      if (!objectLayer) return;
-      const coinObjects = objectLayer.objects.filter(
-        (obj) => obj.name === COIN_OBJECT_NAME,
-      );
-      for (const obj of coinObjects) {
-        if (obj.x === undefined || obj.y === undefined) continue;
-        const coin = this.add.image(obj.x, obj.y - COIN_SIZE, ASSET_KEYS.COIN);
+      if (objectLayer) {
+        for (const obj of objectLayer.objects.filter(
+          (o) => o.name === COIN_OBJECT_NAME,
+        )) {
+          if (obj.x !== undefined && obj.y !== undefined) {
+            coinObjects.push({ x: obj.x, y: obj.y - COIN_SIZE });
+          }
+        }
+      }
+
+      const coinsLayer = this.map.getObjectLayer(COINS_LAYER_NAME);
+      if (coinsLayer) {
+        for (const obj of coinsLayer.objects) {
+          if (obj.x !== undefined && obj.y !== undefined && obj.gid != null) {
+            coinObjects.push({ x: obj.x, y: obj.y - COIN_SIZE });
+          }
+        }
+      }
+
+      for (const { x, y } of coinObjects) {
+        const coin = this.add.image(x, y, ASSET_KEYS.COIN);
         coin.setOrigin(0, 0);
         coin.setDisplaySize(COIN_SIZE, COIN_SIZE);
         this.physics.add.existing(coin, true);

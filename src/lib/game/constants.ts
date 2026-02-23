@@ -200,6 +200,8 @@ export const TITLE_COPYRIGHT_OFFSET_Y = 30;
 export const OBJECT_LAYER_NAME = "objectsLayer";
 /** 2nd ステージの動く床オブジェクトを置くレイヤー名（方法A: 16pxタイルを3枚ずつ Physics Group で制御） */
 export const MOVING_PLATFORMS_LAYER_NAME = "movingPlatforms";
+/** 2nd ステージのコインを置くオブジェクトレイヤー名（タイルオブジェクトで配置） */
+export const COINS_LAYER_NAME = "Coins";
 export const GOAL_FLAG_OBJECT_NAMES = ["Goal_flag", "goal_flag"] as const;
 export const COIN_OBJECT_NAME = "Coin";
 export const ENEMY_OBJECT_NAME = "Spider_1";
