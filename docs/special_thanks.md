@@ -27,3 +27,6 @@ https://pixabay.com/sound-effects/film-special-effects-negative-beeps-6008/
 
 ゲームクリア音
 https://pixabay.com/music/upbeat-a-video-game-short-248442/
+
+トランポリン、ジャンプ音
+https://pixabay.com/sound-effects/film-special-effects-boing-bounce-sound-effect-427577/

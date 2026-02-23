@@ -14,16 +14,39 @@ export function updateEnemies(
   for (const enemy of enemies) {
     const enemyBody = enemy.body as Phaser.Physics.Arcade.Body;
     const isFlying = enemy.texture.key === ASSET_KEYS.BIRD_1;
+    const hasRangePatrol =
+      enemy.startX != null &&
+      enemy.range != null &&
+      typeof enemy.startX === "number" &&
+      typeof enemy.range === "number";
     if (enemy.moveDirection === undefined) {
       enemy.moveDirection = GAME_CONSTANTS.ENEMY.INITIAL_DIRECTION;
     }
+    const speed =
+      enemy.speed != null && typeof enemy.speed === "number"
+        ? enemy.speed
+        : GAME_CONSTANTS.ENEMY.SPEED_X;
+
     if (!isFlying) {
       const { checkX, checkY } = getEnemySensorPosition(enemy, enemyBody);
       const hasFloor = checkEnemyFloor(platformLayer, checkX, checkY);
       const hitWall = enemyBody.blocked.left || enemyBody.blocked.right;
       const isGake = !hasFloor && enemyBody.blocked.down;
-      if (hitWall || isGake) {
-        flipEnemy(enemy, enemyBody);
+      const shouldFlipByCollision = hitWall || isGake;
+
+      if (hasRangePatrol) {
+        // Spider（Enemies層）: 範囲チェックに加え、壁・崖でも反転（stage1 と同様）
+        const isMovingLeft = enemy.moveDirection < 0;
+        const atRangeLimit =
+          (isMovingLeft && enemy.x <= enemy.startX! - enemy.range!) ||
+          (!isMovingLeft && enemy.x >= enemy.startX!);
+        if (shouldFlipByCollision || atRangeLimit) {
+          flipEnemy(enemy, enemyBody);
+        }
+      } else {
+        if (shouldFlipByCollision) {
+          flipEnemy(enemy, enemyBody);
+        }
       }
     } else {
       if (
@@ -48,7 +71,7 @@ export function updateEnemies(
         flipEnemy(enemy, enemyBody);
       }
     }
-    enemyBody.setVelocityX(GAME_CONSTANTS.ENEMY.SPEED_X * enemy.moveDirection);
+    enemyBody.setVelocityX(speed * enemy.moveDirection);
     if (isFlying) {
       const t = _scene.time.now * 0.002;
       enemyBody.setVelocityY(Math.sin(t) * BIRD_1_BOB_SPEED);

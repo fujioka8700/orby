@@ -21,6 +21,7 @@ import {
   PLAYER_COIN_AUDIO_ASSET,
   PLAYER_GAME_COMPLETE_ASSET,
   PLAYER_JUMP_AUDIO_ASSET,
+  SPRING_AUDIO_ASSET,
   PLAYER_GAMEOVER_AUDIO_ASSET,
   PLAYER_GOAL_AUDIO_ASSET,
   PLAYER_MISS_ASSET,
@@ -73,6 +74,7 @@ export function loadGameAssets(scene: Phaser.Scene): void {
       frameWidth: BOUNCEPAD_RED_SIZE,
       frameHeight: BOUNCEPAD_RED_SIZE,
     });
+    load.audio(ASSET_KEYS.SPRING_SFX, SPRING_AUDIO_ASSET);
   }
   load.spritesheet(ASSET_KEYS.PLAYER, PLAYER_ASSET, {
     frameWidth: GAME_CONSTANTS.PLAYER.FRAME_WIDTH,

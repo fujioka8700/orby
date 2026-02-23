@@ -2,7 +2,13 @@
  * 2nd ステージの動く床（方法A: 16pxタイルを3枚ずつ Physics Group で同期制御）。
  * タイルマップの MovingPlatforms レイヤーから生成・更新・リセットを行う。
  */
-import { ASSET_KEYS, GAME_CONSTANTS } from "@/lib/game/constants";
+import {
+  ASSET_KEYS,
+  GAME_CONSTANTS,
+  MOVING_PLATFORM_DEFAULT_DISTANCE,
+  MOVING_PLATFORM_DEFAULT_SPEED,
+  MOVING_PLATFORM_OFFSET_Y,
+} from "@/lib/game/constants";
 
 /** ワンウェイ当たり判定の横方向マージン（px） */
 const ONE_WAY_HORIZONTAL_MARGIN = 2;
@@ -65,7 +71,7 @@ export function createMovingPlatforms(
     const frame = obj.gid - platformFirstGid;
     const part = group.create(
       obj.x,
-      obj.y,
+      obj.y + MOVING_PLATFORM_OFFSET_Y,
       ASSET_KEYS.TILESET_PLATFORM,
       frame,
     ) as Phaser.Physics.Arcade.Sprite;
@@ -73,8 +79,11 @@ export function createMovingPlatforms(
     part.setDepth(0);
 
     const platformID = getPlatformId(obj);
-    const speed = getTiledPropertyNumber(obj, "speed") ?? 100;
-    const distance = getTiledPropertyNumber(obj, "distance") ?? 150;
+    const speed =
+      getTiledPropertyNumber(obj, "speed") ?? MOVING_PLATFORM_DEFAULT_SPEED;
+    const distance =
+      getTiledPropertyNumber(obj, "distance") ??
+      MOVING_PLATFORM_DEFAULT_DISTANCE;
     const leftmostX = masterByPlatformId.get(platformID) ?? obj.x;
     const isMaster = obj.x === leftmostX;
 

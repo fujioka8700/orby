@@ -9,7 +9,7 @@ export const DEBUG = true;
  * Arcade Physics のデバッグ描画。
  * true のとき physics.arcade.debug: true となり、当たり判定などが表示される。
  */
-export const ARCADE_DEBUG = true;
+export const ARCADE_DEBUG = false;
 
 /**
  * プレイヤーの初期位置（DEBUG 時のみ有効）。
@@ -59,4 +59,4 @@ export const STAGE_NUMBER = 2;
  * - false: BGM を鳴らす
  * DEBUG = false のときは常に BGM が有効（鳴る）になる。
  */
-export const BGM_OFF = true;
+export const BGM_OFF = false;

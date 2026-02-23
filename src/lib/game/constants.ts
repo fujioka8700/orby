@@ -52,6 +52,8 @@ export const GAME_CONSTANTS = {
     INITIAL_DIRECTION: -1,
     SENSOR_DISTANCE: 1,
     FLIP_ADJUST: 4,
+    /** 往復範囲のデフォルト（px）。Tiled の range プロパティ未設定時 */
+    DEFAULT_RANGE: 100,
   },
 } as const;
 
@@ -80,6 +82,8 @@ export const BOUNCEPAD_RED_FRAMES = 3;
 /** マップ表示用フレーム（0-indexed）。2コマ目 = 1 */
 export const BOUNCEPAD_RED_DISPLAY_FRAME = 1;
 export const BOUNCEPAD_RED_OBJECT_NAME = "Bouncepad_Red";
+/** 2nd ステージタイルマップの Bouncepad_Red タイルセット firstgid */
+export const BOUNCEPAD_RED_FIRST_GID = 18;
 /** トランポリン（bounce）アニメのキー */
 export const BOUNCEPAD_ANIM_KEY = "bouncepad-bounce";
 /** トランポリンで跳ねたときの上方向初速度（通常ジャンプより強く） */
@@ -98,6 +102,11 @@ export const BOUNCEPAD_STANDING_VERTICAL_MARGIN_BOTTOM = 24;
 export const BOUNCEPAD_STANDING_HORIZONTAL_MARGIN = 8;
 /** 足元の platform タイル判定で使う、下方向の余裕（px） */
 export const PLATFORM_FEET_CHECK_OFFSET = 2;
+
+/** 描画深度：バウンスパッド */
+export const DEPTH_BOUNCEPAD = 100;
+/** 描画深度：プレイヤー・敵（Bouncepad より上に表示） */
+export const DEPTH_PLAYER_AND_ENEMY = 101;
 
 /** コイン：16x16px */
 export const COIN_ASSET = "/orby/assets/graphics/items/Coin.png";
@@ -202,6 +211,12 @@ export const OBJECT_LAYER_NAME = "objectsLayer";
 export const MOVING_PLATFORMS_LAYER_NAME = "movingPlatforms";
 /** 2nd ステージのコインを置くオブジェクトレイヤー名（タイルオブジェクトで配置） */
 export const COINS_LAYER_NAME = "Coins";
+/** 2nd ステージの敵を置くオブジェクトレイヤー名（Spider_1 タイルオブジェクトで配置） */
+export const ENEMIES_LAYER_NAME = "Enemies";
+/** 2nd ステージタイルマップの Bird_1 タイルセット firstgid */
+export const BIRD_1_FIRST_GID = 15;
+/** 2nd ステージタイルマップの Spider_1 タイルセット firstgid */
+export const SPIDER_FIRST_GID = 25;
 export const GOAL_FLAG_OBJECT_NAMES = ["Goal_flag", "goal_flag"] as const;
 export const COIN_OBJECT_NAME = "Coin";
 export const ENEMY_OBJECT_NAME = "Spider_1";
@@ -233,6 +248,22 @@ export const PLAYER_GAME_COMPLETE_ASSET =
 
 /** プレイヤー・ジャンプ効果音 */
 export const PLAYER_JUMP_AUDIO_ASSET = "/orby/assets/audio/sfx/player/jump.mp3";
+
+/** バウンスパッド（トランポリン）接触時効果音 */
+export const SPRING_AUDIO_ASSET =
+  "/orby/assets/audio/sfx/player/spring.mp3";
+/** Spring SE マーカー：通常ジャンプ（0秒付近） */
+export const SPRING_SFX_MARKER_NORMAL = {
+  name: "normal",
+  start: 0,
+  duration: 1,
+} as const;
+/** Spring SE マーカー：大ジャンプ（6.5秒付近） */
+export const SPRING_SFX_MARKER_BIG = {
+  name: "big",
+  start: 6.5,
+  duration: 1,
+} as const;
 
 /** プレイヤー・コイン取得効果音 */
 export const PLAYER_COIN_AUDIO_ASSET =
@@ -287,6 +318,7 @@ export const ASSET_KEYS = {
   TITLE: "title",
   PLAYER_GAME_COMPLETE: "playerGameComplete",
   PLAYER_JUMP: "playerJump",
+  SPRING_SFX: "springSfx",
   PLAYER_COIN: "playerCoin",
   PLAYER_MISS_SFX: "playerMissSfx",
   PLAYER_GOAL: "playerGoal",
@@ -313,4 +345,10 @@ export const TILEMAP_ASSETS = {
 export const PLATFORM_FRAME_WIDTH = 16;
 export const PLATFORM_FRAME_HEIGHT = 16;
 /** 2nd ステージタイルマップの Platform タイルセット firstgid（動く床の gid 判定用） */
-export const PLATFORM_FIRST_GID = 30;
+export const PLATFORM_FIRST_GID = 21;
+/** 2nd ステージの動く床：Y 軸オフセット（px）。Tiled 配置位置からの調整 */
+export const MOVING_PLATFORM_OFFSET_Y = -16;
+/** 動く床のデフォルト速度（px/秒）。Tiled の speed プロパティ未設定時 */
+export const MOVING_PLATFORM_DEFAULT_SPEED = 100;
+/** 動く床のデフォルト往復距離（px）。Tiled の distance プロパティ未設定時 */
+export const MOVING_PLATFORM_DEFAULT_DISTANCE = 150;

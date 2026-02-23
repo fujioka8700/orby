@@ -14,11 +14,13 @@ import {
   BOUNCEPAD_STANDING_VERTICAL_MARGIN_TOP,
   BOUNCEPAD_SUPER_JUMP_WINDOW_MS,
   BOUNCEPAD_RED_DISPLAY_FRAME,
+  BOUNCEPAD_RED_FIRST_GID,
   BOUNCEPAD_RED_OBJECT_NAME,
   BOUNCEPAD_RED_SIZE,
   COIN_OBJECT_NAME,
   COIN_SIZE,
   COINS_LAYER_NAME,
+  ENEMIES_LAYER_NAME,
   ENEMY_OBJECT_NAME,
   ENEMY_OBJECT_NAMES,
   GAME_CLEAR_FADE_DURATION_MS,
@@ -36,7 +38,9 @@ import {
   MOVING_PLATFORMS_LAYER_NAME,
   OBJECT_LAYER_NAME,
   PLATFORM_FEET_CHECK_OFFSET,
+  BIRD_1_FIRST_GID,
   PLATFORM_FIRST_GID,
+  SPIDER_FIRST_GID,
   PLAYER_GAME_COMPLETE_ASSET,
   PLAYER_MISS_ASSET,
   SCENE_BACKGROUND_COLOR,
@@ -46,6 +50,10 @@ import {
   UI_LIVES_ICON_SIZE,
   UI_LIVES_POSITION,
   UI_NUMBER_TEXT_STYLE,
+  DEPTH_BOUNCEPAD,
+  DEPTH_PLAYER_AND_ENEMY,
+  SPRING_SFX_MARKER_NORMAL,
+  SPRING_SFX_MARKER_BIG,
 } from "@/lib/game/constants";
 import { updateEnemies as updateEnemiesAI } from "@/lib/game/enemyAI";
 import {
@@ -500,6 +508,8 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       Grass_Rock_Tileset: ASSET_KEYS.TILESET_GRASS_ROCK,
       Cloud_Tileset: ASSET_KEYS.TILESET_CLOUD,
       Coin: ASSET_KEYS.COIN,
+      Bird_1: ASSET_KEYS.BIRD_1,
+      Spider_1: ASSET_KEYS.SPIDER,
     };
 
     private collectTilesets(): Phaser.Tilemaps.Tileset[] {
@@ -540,8 +550,19 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       return layer.objects.find((obj) => names.includes(obj.name ?? ""));
     }
 
-    /** Tiled オブジェクトのカスタムプロパティ（数値）を取得する */
+    /** Tiled オブジェクトのカスタムプロパティ（数値）を取得する。オブジェクトに無ければ gid のタイル定義から取得 */
     private getTiledPropertyNumber(
+      obj: Phaser.Types.Tilemaps.TiledObject,
+      name: string,
+    ): number | undefined {
+      const fromObj = this.getTiledPropertyNumberFromObject(obj, name);
+      if (fromObj !== undefined) return fromObj;
+      const gid = (obj as { gid?: number }).gid;
+      if (gid != null) return this.getTiledPropertyNumberFromTile(gid, name);
+      return undefined;
+    }
+
+    private getTiledPropertyNumberFromObject(
       obj: Phaser.Types.Tilemaps.TiledObject,
       name: string,
     ): number | undefined {
@@ -556,6 +577,34 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       if (props && typeof props === "object" && name in props) {
         const v = (props as Record<string, number>)[name];
         return typeof v === "number" ? v : undefined;
+      }
+      return undefined;
+    }
+
+    /** gid のタイル定義からプロパティを取得（タイルセットのタイルに設定した値） */
+    private getTiledPropertyNumberFromTile(gid: number, name: string): number | undefined {
+      const mapData = this.map as unknown as {
+        tilesets?: Array<{
+          firstgid: number;
+          total?: number;
+          tiles?: Array<{ id: number; properties?: Array<{ name: string; value: number }> }>;
+        }>;
+      };
+      const tilesets = mapData.tilesets;
+      if (!Array.isArray(tilesets)) return undefined;
+      for (const ts of tilesets) {
+        const total = ts.total ?? (ts.tiles?.length ?? 0);
+        if (gid >= ts.firstgid && gid < ts.firstgid + total) {
+          const tileIndex = gid - ts.firstgid;
+          const tile =
+            ts.tiles?.[tileIndex] ??
+            ts.tiles?.find((t) => t.id === tileIndex);
+          if (tile?.properties) {
+            const p = tile.properties.find((pr) => pr.name === name);
+            return p != null ? Number(p.value) : undefined;
+          }
+          return undefined;
+        }
       }
       return undefined;
     }
@@ -631,9 +680,15 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       } else {
         this.bouncepads = this.add.group();
       }
-      const bouncepadObjects = objectLayer.objects.filter(
-        (obj) => obj.name === BOUNCEPAD_RED_OBJECT_NAME,
-      );
+      const bouncepadObjects = objectLayer.objects.filter((obj) => {
+        if (obj.name === BOUNCEPAD_RED_OBJECT_NAME) return true;
+        const gid = (obj as { gid?: number }).gid;
+        return (
+          gid != null &&
+          gid >= BOUNCEPAD_RED_FIRST_GID &&
+          gid < BOUNCEPAD_RED_FIRST_GID + 3
+        );
+      });
       for (const obj of bouncepadObjects) {
         if (obj.x === undefined || obj.y === undefined) continue;
         const pad = this.add.sprite(
@@ -644,7 +699,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
         );
         pad.setOrigin(0, 0);
         pad.setDisplaySize(BOUNCEPAD_RED_SIZE, BOUNCEPAD_RED_SIZE);
-        pad.setDepth(100);
+        pad.setDepth(DEPTH_BOUNCEPAD);
         this.physics.add.existing(pad, true);
         const body = pad.body as Phaser.Physics.Arcade.StaticBody;
         body.setSize(BOUNCEPAD_BODY_SIZE, BOUNCEPAD_BODY_SIZE);
@@ -690,9 +745,11 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       if (justBeforeLanding) {
         this.jumpedFromTrampolineSuper = true;
         player.setVelocityY(BOUNCEPAD_SUPER_BOUNCE_VELOCITY);
+        this.sound.play(ASSET_KEYS.SPRING_SFX, SPRING_SFX_MARKER_BIG);
       } else {
         this.jumpedFromTrampolineSuper = false;
         player.setVelocityY(BOUNCEPAD_BOUNCE_VELOCITY);
+        this.sound.play(ASSET_KEYS.SPRING_SFX, SPRING_SFX_MARKER_NORMAL);
       }
     }
 
@@ -930,7 +987,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
         GAME_CONSTANTS.PLAYER.ACTUAL_HEIGHT,
       );
       playerBody.setCollideWorldBounds(true);
-      this.player.setDepth(101);
+      this.player.setDepth(DEPTH_PLAYER_AND_ENEMY);
     }
 
     private applyPlayerBodySize(
@@ -1045,20 +1102,65 @@ export function createMainScene(PhaserLib: typeof Phaser) {
     private setupEnemies() {
       this.enemies = [];
       this.enemyStartPositions = [];
-      const objectLayer = this.map.getObjectLayer(OBJECT_LAYER_NAME);
-      if (!objectLayer) return;
-
-      const enemyObjects = objectLayer.objects.filter((obj) =>
-        ENEMY_OBJECT_NAMES.includes(obj.name as (typeof ENEMY_OBJECT_NAMES)[number]),
-      );
       const initialDirection = GAME_CONSTANTS.ENEMY.INITIAL_DIRECTION;
 
-      for (const enemyObj of enemyObjects) {
-        if (enemyObj.x === undefined || enemyObj.y === undefined) continue;
-        const startX = enemyObj.x;
-        const startY = enemyObj.y;
-        const isBird = enemyObj.name === BIRD_1_OBJECT_NAME;
+      const enemyObjects: Array<{
+        x: number;
+        y: number;
+        isBird: boolean;
+        fromEnemiesLayer: boolean;
+        obj: Phaser.Types.Tilemaps.TiledObject;
+      }> = [];
 
+      const objectLayer = this.map.getObjectLayer(OBJECT_LAYER_NAME);
+      if (objectLayer) {
+        // stage2: Bird は Enemies レイヤーのみで使用。objectsLayer の Bird_1 は読み込まない
+        for (const obj of objectLayer.objects.filter((o) =>
+          ENEMY_OBJECT_NAMES.includes(o.name as (typeof ENEMY_OBJECT_NAMES)[number]) &&
+          o.name !== BIRD_1_OBJECT_NAME,
+        )) {
+          if (obj.x !== undefined && obj.y !== undefined) {
+            enemyObjects.push({
+              x: obj.x,
+              y: obj.y,
+              isBird: false,
+              fromEnemiesLayer: false,
+              obj,
+            });
+          }
+        }
+      }
+
+      const enemiesLayer = this.map.getObjectLayer(ENEMIES_LAYER_NAME);
+      if (enemiesLayer) {
+        for (const obj of enemiesLayer.objects) {
+          if (obj.x === undefined || obj.y === undefined || obj.gid == null) {
+            continue;
+          }
+          const gid = obj.gid;
+          const isBirdFromLayer =
+            gid >= BIRD_1_FIRST_GID && gid < BIRD_1_FIRST_GID + 3;
+          const isSpiderFromLayer =
+            gid >= SPIDER_FIRST_GID && gid < SPIDER_FIRST_GID + 3;
+          if (isBirdFromLayer || isSpiderFromLayer) {
+            enemyObjects.push({
+              x: obj.x,
+              y: obj.y,
+              isBird: isBirdFromLayer,
+              fromEnemiesLayer: true,
+              obj,
+            });
+          }
+        }
+      }
+
+      for (const {
+        x: startX,
+        y: startY,
+        isBird,
+        fromEnemiesLayer,
+        obj: enemyObj,
+      } of enemyObjects) {
         const enemy = this.physics.add.sprite(
           startX,
           startY,
@@ -1066,10 +1168,33 @@ export function createMainScene(PhaserLib: typeof Phaser) {
           isBird ? 0 : 0,
         ) as EnemySprite;
 
+        if (fromEnemiesLayer) {
+          enemy.setOrigin(0, 1);
+          if (!isBird) {
+            const speed =
+              this.getTiledPropertyNumber(enemyObj, "speed") ??
+              GAME_CONSTANTS.ENEMY.SPEED_X;
+            const range =
+              this.getTiledPropertyNumber(enemyObj, "range") ??
+              GAME_CONSTANTS.ENEMY.DEFAULT_RANGE;
+            (enemy as EnemySprite).startX = startX;
+            (enemy as EnemySprite).range = range;
+            (enemy as EnemySprite).speed = speed;
+          }
+        }
+
+        const spiderRangeMode = fromEnemiesLayer && !isBird;
+
         if (isBird) {
-          const range = this.getTiledPropertyNumber(enemyObj, "range") ?? 100;
+          const range =
+            this.getTiledPropertyNumber(enemyObj, "range") ??
+            GAME_CONSTANTS.ENEMY.DEFAULT_RANGE;
+          const speed =
+            this.getTiledPropertyNumber(enemyObj, "speed") ??
+            GAME_CONSTANTS.ENEMY.SPEED_X;
           enemy.startX = startX;
           enemy.range = range;
+          enemy.speed = speed;
           enemy.setDisplaySize(BIRD_1_FRAME_SIZE, BIRD_1_FRAME_SIZE);
           const birdBody = enemy.body as Phaser.Physics.Arcade.Body;
           birdBody.setSize(15, 14);
@@ -1093,33 +1218,33 @@ export function createMainScene(PhaserLib: typeof Phaser) {
           );
           enemyBody.setCollideWorldBounds(true);
           enemy.play("spider-walk", true);
+
+          // stage2 Spider（Enemies層）: 初速をマイナス（左へ）、画像を左向きに
+          if (spiderRangeMode) {
+            const spiderSpeed =
+              (enemy as EnemySprite).speed ?? GAME_CONSTANTS.ENEMY.SPEED_X;
+            enemyBody.setVelocityX(-spiderSpeed);
+            enemy.setFlipX(false);
+          }
         }
 
-        enemy.moveDirection = initialDirection;
-        enemy.setFlipX(false);
+        enemy.moveDirection = spiderRangeMode ? -1 : initialDirection;
+        if (!spiderRangeMode) {
+          enemy.setFlipX(enemy.moveDirection > 0);
+        }
 
-        this.physics.add.collider(enemy, this.platformLayer, () => {
-          const body = enemy.body as Phaser.Physics.Arcade.Body;
-          if (body.blocked.left || body.blocked.right) {
-            enemy.moveDirection *= -1;
-            enemy.setFlipX(enemy.moveDirection > 0);
-          }
-        });
+        enemy.setDepth(DEPTH_PLAYER_AND_ENEMY);
+
+        this.physics.add.collider(enemy, this.platformLayer);
         if (this.movingPlatforms) {
-          this.physics.add.collider(enemy, this.movingPlatforms, () => {
-            const body = enemy.body as Phaser.Physics.Arcade.Body;
-            if (body.blocked.left || body.blocked.right) {
-              enemy.moveDirection *= -1;
-              enemy.setFlipX(enemy.moveDirection > 0);
-            }
-          });
+          this.physics.add.collider(enemy, this.movingPlatforms);
         }
 
         this.enemies.push(enemy);
         this.enemyStartPositions.push({
           x: startX,
           y: startY,
-          moveDirection: initialDirection,
+          moveDirection: enemy.moveDirection,
         });
       }
     }

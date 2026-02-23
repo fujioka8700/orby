@@ -81,7 +81,8 @@
             }
         },
         "assets/maps/2nd_stage.tmx#Bird_1": {
-            "scaleInDock": 1
+            "scaleInDock": 1,
+            "scaleInEditor": 1
         },
         "assets/maps/2nd_stage.tmx#Bouncepad_Red": {
             "scaleInDock": 1
@@ -97,8 +98,14 @@
             "scaleInDock": 1,
             "scaleInEditor": 1
         },
+        "assets/maps/2nd_stage.tmx#Leaf_Tileset": {
+            "scaleInEditor": 1
+        },
         "assets/maps/2nd_stage.tmx#Platform": {
             "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "assets/maps/2nd_stage.tmx#Spider_1": {
             "scaleInEditor": 1
         },
         "assets/maps/Grass_Tileset.tsx": {
