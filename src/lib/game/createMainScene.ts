@@ -2,6 +2,9 @@
 import { createGameAnimations } from "@/lib/game/animations";
 import {
   ASSET_KEYS,
+  CASTLE_BG_HEIGHT,
+  CASTLE_BG_TOP_BAR_COLOR,
+  CASTLE_BG_TOP_OFFSET,
   BIRD_1_FRAME_SIZE,
   BIRD_1_OBJECT_NAME,
   BOUNCEPAD_ANIM_KEY,
@@ -144,7 +147,8 @@ export function createMainScene(PhaserLib: typeof Phaser) {
     private isGameClear = false;
     /** 本番・CREATE_A_SINGLE_IMAGE 共通のゲームクリア画面（update/destroy 用） */
     private gameClearScreenRef: GameClearScreen | null = null;
-    private background: Phaser.GameObjects.TileSprite | null = null;
+    private background: Phaser.GameObjects.TileSprite | Phaser.GameObjects.Image | null =
+      null;
     private coins!: Phaser.GameObjects.Group;
     private readonly maxSpeed = GAME_CONSTANTS.MOVEMENT.MAX_SPEED;
     private readonly acceleration = GAME_CONSTANTS.MOVEMENT.ACCELERATION;
@@ -187,6 +191,8 @@ export function createMainScene(PhaserLib: typeof Phaser) {
         this.setupBackground();
       } else if (this.getEffectiveStageNumber() === 2) {
         this.setupBackground2nd();
+      } else if (this.getEffectiveStageNumber() === 3) {
+        this.setupBackground3rd();
       }
       this.setupPlayer();
       this.setupCamera();
@@ -354,13 +360,17 @@ export function createMainScene(PhaserLib: typeof Phaser) {
     }
 
     /** 有効なステージ番号（DEBUG 時のみ STAGE_NUMBER、そうでないときは 1） */
-    private getEffectiveStageNumber(): 1 | 2 {
-      return DEBUG && STAGE_NUMBER === 2 ? 2 : 1;
+    private getEffectiveStageNumber(): 1 | 2 | 3 {
+      if (!DEBUG) return 1;
+      if (STAGE_NUMBER === 3) return 3;
+      if (STAGE_NUMBER === 2) return 2;
+      return 1;
     }
 
-    /** 背景を画像（Forest_Background_0.png）で表示するか。1st のみ画像、2nd は Sky 背景。 */
+    /** 背景を画像（Forest_Background_0.png）で表示するか。1st のみ画像、2nd/3rd は Sky 背景。 */
     private shouldUseImageBackground(): boolean {
-      if (this.getEffectiveStageNumber() === 2) return false;
+      if (this.getEffectiveStageNumber() === 2 || this.getEffectiveStageNumber() === 3)
+        return false;
       return !DEBUG || USE_IMAGE_BACKGROUND;
     }
 
@@ -444,6 +454,47 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       this.background.setDepth(-1);
     }
 
+    /** 3rd ステージ用：上端を CASTLE_BG_TOP_BAR_COLOR で塗りつぶし、その下に Castle_Background_1 を横連続タイル・プレイヤー同速でスクロール。 */
+    private setupBackground3rd() {
+      const cam = this.cameras.main;
+      const cw = cam.width;
+      this.createStage3TopBar(cw);
+      this.background = this.add.tileSprite(
+        cw / 2,
+        CASTLE_BG_TOP_OFFSET,
+        cw,
+        CASTLE_BG_HEIGHT,
+        ASSET_KEYS.BACKGROUND_CASTLE_1,
+      );
+      this.background.setOrigin(0.5, 0);
+      this.background.setScrollFactor(0);
+      this.syncStage3BackgroundPosition();
+      this.background.setDepth(-1);
+    }
+
+    /** 3rd ステージ：上端バー（城背景より上の色帯）を追加する。 */
+    private createStage3TopBar(cw: number) {
+      const topBar = this.add.rectangle(
+        cw / 2,
+        CASTLE_BG_TOP_OFFSET / 2,
+        cw,
+        CASTLE_BG_TOP_OFFSET,
+        CASTLE_BG_TOP_BAR_COLOR,
+      );
+      topBar.setScrollFactor(0);
+      topBar.setDepth(-2);
+    }
+
+    /** 3rd ステージの背景のタイル位置をカメラ（プレイヤー）と同速で更新する。 */
+    private syncStage3BackgroundPosition() {
+      if (this.getEffectiveStageNumber() !== 3 || !this.background) return;
+      const cam = this.cameras.main;
+      const scrollX = cam.scrollX;
+      if (this.background instanceof Phaser.GameObjects.TileSprite) {
+        this.background.setTilePosition(scrollX, 0);
+      }
+    }
+
     /** 2nd ステージ用：Sky_0 を固定、Sky_1/2 をパララックス。いずれもアスペクト比維持で縦幅を画面に合わせる。 */
     private setupBackground2nd() {
       const mapWidth = this.map.widthInPixels;
@@ -507,6 +558,8 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       Leaf_Tileset: ASSET_KEYS.TILESET_LEAF,
       Grass_Rock_Tileset: ASSET_KEYS.TILESET_GRASS_ROCK,
       Cloud_Tileset: ASSET_KEYS.TILESET_CLOUD,
+      Brick_Tileset: ASSET_KEYS.TILESET_BRICK,
+      Lava: ASSET_KEYS.TILESET_LAVA,
       Coin: ASSET_KEYS.COIN,
       Bird_1: ASSET_KEYS.BIRD_1,
       Spider_1: ASSET_KEYS.SPIDER,
@@ -624,10 +677,11 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       return typeof p.value === "boolean" ? p.value : Boolean(p.value);
     }
 
-    /** DEBUG 時は phaserConfig.PLAYER_START_POSITION（2nd ステージでは常に "Player"）、そうでなければ "Player" */
+    /** DEBUG 時は phaserConfig.PLAYER_START_POSITION（2nd/3rd ステージでは常に "Player"）、そうでなければ "Player" */
     private getPlayerStartObjectName(): string {
       if (!DEBUG) return "Player";
-      if (this.getEffectiveStageNumber() === 2) return "Player";
+      if (this.getEffectiveStageNumber() === 2 || this.getEffectiveStageNumber() === 3)
+        return "Player";
       return PLAYER_START_POSITION;
     }
 
@@ -1553,6 +1607,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
     }
 
     update() {
+      this.syncStage3BackgroundPosition();
       if (this.shouldUpdateGameClearScreen()) {
         this.gameClearScreenRef?.update();
         return;

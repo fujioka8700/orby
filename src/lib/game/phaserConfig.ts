@@ -49,9 +49,10 @@ export const CREATE_A_SINGLE_IMAGE_BACKGROUND = 0x808080;
  * ステージ番号（DEBUG 時のみ有効）。
  * - 1: 1st ステージ（1st_stage_tilemap.json）
  * - 2: 2nd ステージ（2nd_stage_tilemap.json）
+ * - 3: 3rd ステージ（3rd_stage_tilemap.json）
  * DEBUG = false のときは常に 1st ステージを表示する。
  */
-export const STAGE_NUMBER = 2;
+export const STAGE_NUMBER = 3;
 
 /**
  * BGM をオフにするか（DEBUG 時のみ有効）。

@@ -29,6 +29,7 @@ import {
   PLATFORM_FRAME_HEIGHT,
   PLATFORM_FRAME_WIDTH,
   SPIDER_ASSET,
+  BACKGROUND_CASTLE_1_ASSET,
   BACKGROUND_SKY_0_ASSET,
   BACKGROUND_SKY_1_ASSET,
   BACKGROUND_SKY_2_ASSET,
@@ -38,8 +39,11 @@ import {
 import { DEBUG, STAGE_NUMBER } from "@/lib/game/phaserConfig";
 
 /** 使用するステージ番号（DEBUG 時のみ STAGE_NUMBER、そうでないときは 1） */
-function getEffectiveStageNumber(): 1 | 2 {
-  return DEBUG ? (STAGE_NUMBER === 2 ? 2 : 1) : 1;
+function getEffectiveStageNumber(): 1 | 2 | 3 {
+  if (!DEBUG) return 1;
+  if (STAGE_NUMBER === 3) return 3;
+  if (STAGE_NUMBER === 2) return 2;
+  return 1;
 }
 
 /** メインシーン用アセットをすべてプリロードする */
@@ -64,17 +68,25 @@ export function loadGameAssets(scene: Phaser.Scene): void {
     TILEMAP_ASSETS.tilesetGrassRock,
   );
   load.image(ASSET_KEYS.TILESET_CLOUD, TILEMAP_ASSETS.tilesetCloud);
-  const is2ndStage = getEffectiveStageNumber() === 2;
-  const tilemapUrl = is2ndStage
-    ? TILEMAP_ASSETS.tilemap2nd
-    : TILEMAP_ASSETS.tilemap;
+  const stageNumber = getEffectiveStageNumber();
+  const tilemapUrl =
+    stageNumber === 3
+      ? TILEMAP_ASSETS.tilemap3rd
+      : stageNumber === 2
+        ? TILEMAP_ASSETS.tilemap2nd
+        : TILEMAP_ASSETS.tilemap;
   load.tilemapTiledJSON(ASSET_KEYS.TILEMAP, tilemapUrl);
-  if (is2ndStage) {
+  if (stageNumber === 2) {
     load.spritesheet(ASSET_KEYS.BOUNCEPAD_RED, BOUNCEPAD_RED_ASSET, {
       frameWidth: BOUNCEPAD_RED_SIZE,
       frameHeight: BOUNCEPAD_RED_SIZE,
     });
     load.audio(ASSET_KEYS.SPRING_SFX, SPRING_AUDIO_ASSET);
+  }
+  if (stageNumber === 3) {
+    load.image(ASSET_KEYS.TILESET_BRICK, TILEMAP_ASSETS.tilesetBrick);
+    load.image(ASSET_KEYS.TILESET_LAVA, TILEMAP_ASSETS.tilesetLava);
+    load.image(ASSET_KEYS.BACKGROUND_CASTLE_1, BACKGROUND_CASTLE_1_ASSET);
   }
   load.spritesheet(ASSET_KEYS.PLAYER, PLAYER_ASSET, {
     frameWidth: GAME_CONSTANTS.PLAYER.FRAME_WIDTH,

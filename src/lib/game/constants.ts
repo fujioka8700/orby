@@ -242,6 +242,16 @@ export const BACKGROUND_SKY_1_ASSET =
 export const BACKGROUND_SKY_2_ASSET =
   "/orby/assets/graphics/backgrounds/Sky_Background_2.png";
 
+/** 3rd ステージ用背景 */
+export const BACKGROUND_CASTLE_1_ASSET =
+  "/orby/assets/graphics/backgrounds/Castle_Background_1.png";
+/** 3rd ステージ：城背景画像の高さ（px） */
+export const CASTLE_BG_HEIGHT = 213;
+/** 3rd ステージ：城背景の上端オフセット（キャンバス上端からの px） */
+export const CASTLE_BG_TOP_OFFSET = 27;
+/** 3rd ステージ：上端バー（城背景より上）の色（0xRRGGBB） */
+export const CASTLE_BG_TOP_BAR_COLOR = 0x1a1932;
+
 /** ゲームクリア画面用画像（CREATE_A_SINGLE_IMAGE 時の仮表示） */
 export const PLAYER_GAME_COMPLETE_ASSET =
   "/orby/assets/graphics/characters/Player_game_complete.png";
@@ -305,12 +315,15 @@ export const ASSET_KEYS = {
   BACKGROUND_SKY_0: "backgroundSky0",
   BACKGROUND_SKY_1: "backgroundSky1",
   BACKGROUND_SKY_2: "backgroundSky2",
+  BACKGROUND_CASTLE_1: "backgroundCastle1",
   TILESET_GRASS: "tilesetGrass",
   TILESET_PLATFORM: "tilesetPlatform",
   TILESET_GRASS_ONEWAY: "tilesetGrassOneway",
   TILESET_LEAF: "tilesetLeaf",
   TILESET_GRASS_ROCK: "tilesetGrassRock",
   TILESET_CLOUD: "tilesetCloud",
+  TILESET_BRICK: "tilesetBrick",
+  TILESET_LAVA: "tilesetLava",
   COIN: "coin",
   COINS_UI: "coinsUi",
   LIVES_ICON: "livesIcon",
@@ -339,6 +352,9 @@ export const TILEMAP_ASSETS = {
   tilesetCloud: "/orby/assets/graphics/environment/tilesets/Cloud_Tileset.png",
   tilemap: "/orby/assets/maps/1st_stage_tilemap.json",
   tilemap2nd: "/orby/assets/maps/2nd_stage_tilemap.json",
+  tilemap3rd: "/orby/assets/maps/3rd_stage_tilemap.json",
+  tilesetBrick: "/orby/assets/graphics/environment/tilesets/Brick_Tileset.png",
+  tilesetLava: "/orby/assets/graphics/backgrounds/Lava.png",
 } as const;
 
 /** Platform.png スプライトシート用（タイルマップの Platform タイルセット読み込み用） */
