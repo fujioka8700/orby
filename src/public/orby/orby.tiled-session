@@ -5,10 +5,10 @@
     },
     "activeFile": "assets/maps/3rd_stage.tmx",
     "expandedProjectPaths": [
+        "assets",
         "sandbox",
         "assets/maps",
-        ".",
-        "assets"
+        "."
     ],
     "fileStates": {
         "": {
@@ -71,13 +71,14 @@
         "assets/maps/2nd_stage.tmx": {
             "expandedObjectLayers": [
                 6,
+                7,
                 9,
-                7
+                2
             ],
             "scale": 0.75,
             "selectedLayer": 3,
             "viewCenter": {
-                "x": 88.66666666666663,
+                "x": 1440,
                 "y": 120
             }
         },
@@ -115,11 +116,14 @@
             "scaleInEditor": 1
         },
         "assets/maps/3rd_stage.tmx": {
-            "scale": 3,
-            "selectedLayer": 1,
+            "expandedObjectLayers": [
+                3
+            ],
+            "scale": 1.5,
+            "selectedLayer": 2,
             "viewCenter": {
-                "x": 75.5,
-                "y": 134.33333333333331
+                "x": 129,
+                "y": 126.66666666666666
             }
         },
         "assets/maps/3rd_stage.tmx#Brick_Tileset": {
@@ -165,7 +169,7 @@
         "assets/maps/3rd_stage.tmx"
     ],
     "project": "orby.tiled-project",
-    "property.type": "bool",
+    "property.type": "string",
     "recentFiles": [
         "assets/maps/1st_stage.tmx",
         "assets/maps/2nd_stage.tmx",
@@ -177,7 +181,7 @@
     ],
     "tileset.embedInMap": true,
     "tileset.tileSize": {
-        "height": 64,
-        "width": 48
+        "height": 16,
+        "width": 16
     }
 }

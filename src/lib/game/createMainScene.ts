@@ -43,6 +43,7 @@ import {
   PLATFORM_FEET_CHECK_OFFSET,
   BIRD_1_FIRST_GID,
   PLATFORM_FIRST_GID,
+  SAW_ROTATION_SPEED,
   SPIDER_FIRST_GID,
   PLAYER_GAME_COMPLETE_ASSET,
   PLAYER_MISS_ASSET,
@@ -65,6 +66,10 @@ import {
   resetMovingPlatforms as resetMovingPlatformsModule,
   updateMovingPlatforms as updateMovingPlatformsModule,
 } from "@/lib/game/movingPlatforms";
+import {
+  createSawFollowers,
+  placeRailsFromLayer,
+} from "@/lib/game/sawTraps";
 import { createGameClearScreen } from "@/lib/game/gameClearUI";
 import { getGameContainer, removeResumeListeners } from "@/lib/game/domUtils";
 import { createGameOverUI } from "@/lib/game/gameOverUI";
@@ -150,6 +155,8 @@ export function createMainScene(PhaserLib: typeof Phaser) {
     private background: Phaser.GameObjects.TileSprite | Phaser.GameObjects.Image | null =
       null;
     private coins!: Phaser.GameObjects.Group;
+    /** 3rd ステージのみ：レール上を動くノコギリトラップ（PathFollower のグループ） */
+    private circularSaws: Phaser.GameObjects.Group | undefined = undefined;
     private readonly maxSpeed = GAME_CONSTANTS.MOVEMENT.MAX_SPEED;
     private readonly acceleration = GAME_CONSTANTS.MOVEMENT.ACCELERATION;
     private readonly deceleration = GAME_CONSTANTS.MOVEMENT.DECELERATION;
@@ -208,6 +215,10 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       this.setupPlayerGoalOverlap();
       this.setupEnemies();
       this.setupPlayerEnemyOverlap();
+      if (this.getEffectiveStageNumber() === 3) {
+        this.setupSawTraps();
+        this.setupPlayerSawOverlap();
+      }
       this.setupInput();
       this.setupLivesUI();
       if (DEBUG && SKIP_TITLE_SCREEN) {
@@ -493,6 +504,24 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       if (this.background instanceof Phaser.GameObjects.TileSprite) {
         this.background.setTilePosition(scrollX, 0);
       }
+    }
+
+    /** 3rd ステージ：sawPath レイヤーからレールを配置し、Polyline からノコギリを生成する。 */
+    private setupSawTraps() {
+      placeRailsFromLayer(this, this.map);
+      this.circularSaws = createSawFollowers(this, this.map);
+    }
+
+    /** 3rd ステージ：プレイヤーとノコギリの接触でミスとする。 */
+    private setupPlayerSawOverlap() {
+      if (!this.circularSaws) return;
+      this.physics.add.overlap(this.player, this.circularSaws, () => {
+        if (this.isPlayingMissSequence) return;
+        if (this.isInFallDeathTransition) return;
+        if (this.time.now < this.invincibleUntil) return;
+        this.isPlayingMissSequence = true;
+        this.triggerMiss();
+      });
     }
 
     /** 2nd ステージ用：Sky_0 を固定、Sky_1/2 をパララックス。いずれもアスペクト比維持で縦幅を画面に合わせる。 */
@@ -1620,6 +1649,8 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       const playerBody = this.player.body as Phaser.Physics.Arcade.Body;
       const cameraBottom = this.cameras.main.scrollY + this.cameras.main.height;
 
+      this.updateSawRotation();
+
       if (this.isInFallDeathTransition) {
         this.updateMovingPlatforms();
         if (this.isWaitingForFallDeathOffScreen) {
@@ -1661,6 +1692,14 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       }
       updateEnemiesAI(this, this.enemies, this.platformLayer);
       this.updateInvincibilityBlink();
+    }
+
+    /** 3rd ステージ：ノコギリの見た目を回転させる。 */
+    private updateSawRotation() {
+      if (this.getEffectiveStageNumber() !== 3 || !this.circularSaws) return;
+      for (const saw of this.circularSaws.getChildren()) {
+        (saw as Phaser.GameObjects.Sprite).angle += SAW_ROTATION_SPEED;
+      }
     }
 
     private updateInvincibilityBlink() {

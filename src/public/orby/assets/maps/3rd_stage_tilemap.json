@@ -42,8 +42,129 @@
                  "type":"",
                  "visible":true,
                  "width":0,
-                 "x":39.3333333333333,
-                 "y":204.666666666667
+                 "x":39.3333,
+                 "y":204.667
+                }],
+         "opacity":1,
+         "type":"objectgroup",
+         "visible":true,
+         "x":0,
+         "y":0
+        }, 
+        {
+         "draworder":"topdown",
+         "id":4,
+         "name":"sawPath",
+         "objects":[
+                {
+                 "height":0,
+                 "id":4,
+                 "name":"",
+                 "polyline":[
+                        {
+                         "x":7.99999999999999,
+                         "y":-7.99999999999997
+                        }, 
+                        {
+                         "x":104.060606060606,
+                         "y":-7.84848484848484
+                        }],
+                 "properties":[
+                        {
+                         "name":"name",
+                         "type":"string",
+                         "value":"sawPath"
+                        }],
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":0,
+                 "x":64,
+                 "y":176
+                }, 
+                {
+                 "gid":31,
+                 "height":16,
+                 "id":5,
+                 "name":"",
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":16,
+                 "x":64,
+                 "y":176
+                }, 
+                {
+                 "gid":33,
+                 "height":16,
+                 "id":6,
+                 "name":"",
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":16,
+                 "x":160,
+                 "y":176
+                }, 
+                {
+                 "gid":32,
+                 "height":16,
+                 "id":7,
+                 "name":"",
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":16,
+                 "x":80,
+                 "y":176
+                }, 
+                {
+                 "gid":32,
+                 "height":16,
+                 "id":8,
+                 "name":"",
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":16,
+                 "x":96,
+                 "y":176
+                }, 
+                {
+                 "gid":32,
+                 "height":16,
+                 "id":9,
+                 "name":"",
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":16,
+                 "x":112,
+                 "y":176
+                }, 
+                {
+                 "gid":32,
+                 "height":16,
+                 "id":10,
+                 "name":"",
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":16,
+                 "x":128,
+                 "y":176
+                }, 
+                {
+                 "gid":32,
+                 "height":16,
+                 "id":11,
+                 "name":"",
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":16,
+                 "x":144,
+                 "y":176
                 }],
          "opacity":1,
          "type":"objectgroup",
@@ -51,8 +172,8 @@
          "x":0,
          "y":0
         }],
- "nextlayerid":4,
- "nextobjectid":2,
+ "nextlayerid":5,
+ "nextobjectid":12,
  "orientation":"orthogonal",
  "renderorder":"right-down",
  "tiledversion":"1.11.2",
@@ -165,6 +286,19 @@
          "tilecount":8,
          "tileheight":64,
          "tilewidth":48
+        }, 
+        {
+         "columns":4,
+         "firstgid":18,
+         "image":"..\/graphics\/environment\/interactive\/Rails.png",
+         "imageheight":64,
+         "imagewidth":64,
+         "margin":0,
+         "name":"Rails",
+         "spacing":0,
+         "tilecount":16,
+         "tileheight":16,
+         "tilewidth":16
         }],
  "tilewidth":16,
  "type":"map",

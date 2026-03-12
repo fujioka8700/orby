@@ -107,6 +107,8 @@ export const PLATFORM_FEET_CHECK_OFFSET = 2;
 export const DEPTH_BOUNCEPAD = 100;
 /** 描画深度：プレイヤー・敵（Bouncepad より上に表示） */
 export const DEPTH_PLAYER_AND_ENEMY = 101;
+/** 描画深度：3rd ステージのレール（ノコギリより下に表示） */
+export const DEPTH_RAILS = 99;
 
 /** コイン：16x16px */
 export const COIN_ASSET = "/orby/assets/graphics/items/Coin.png";
@@ -324,6 +326,8 @@ export const ASSET_KEYS = {
   TILESET_CLOUD: "tilesetCloud",
   TILESET_BRICK: "tilesetBrick",
   TILESET_LAVA: "tilesetLava",
+  CIRCULAR_SAW: "circularSaw",
+  RAILS: "rails",
   COIN: "coin",
   COINS_UI: "coinsUi",
   LIVES_ICON: "livesIcon",
@@ -368,3 +372,23 @@ export const MOVING_PLATFORM_OFFSET_Y = -16;
 export const MOVING_PLATFORM_DEFAULT_SPEED = 100;
 /** 動く床のデフォルト往復距離（px）。Tiled の distance プロパティ未設定時 */
 export const MOVING_PLATFORM_DEFAULT_DISTANCE = 150;
+
+/** 3rd ステージ：ノコギリの軌道を定義するオブジェクトレイヤー名（Tiled の Polyline） */
+export const SAW_PATH_LAYER_NAME = "sawPath";
+/** 3rd ステージ：ノコギリ画像（Circular_Saw.png） */
+export const CIRCULAR_SAW_ASSET =
+  "/orby/assets/graphics/environment/hazards/Circular_Saw.png";
+/** ノコギリがパスを1往復する時間（ms） */
+export const SAW_FOLLOW_DURATION_MS = 3000;
+/** ノコギリの見た目回転速度（度/フレーム） */
+export const SAW_ROTATION_SPEED = 8;
+
+/** 3rd ステージ：レール画像（Rails.png）ノコギリの通り道表示用。3rd_stage_tilemap.json の Rails タイルセットに合わせる。 */
+export const RAILS_ASSET =
+  "/orby/assets/graphics/environment/interactive/Rails.png";
+/** Rails.png 1タイルの幅・高さ（px）。タイルマップと同一（64x64 を 4x4 で 16x16）。 */
+export const RAILS_TILE_SIZE = 16;
+/** 3rd ステージタイルマップの Rails タイルセット firstgid（gid - RAILS_FIRST_GID = スプライトフレーム番号）。 */
+export const RAILS_FIRST_GID = 18;
+/** Rails タイルセットのタイル数（4x4=16）。gid 有効範囲の判定に使用。 */
+export const RAILS_TILE_COUNT = 16;
