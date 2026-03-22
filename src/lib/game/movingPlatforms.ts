@@ -106,10 +106,21 @@ export function createMovingPlatforms(
 /**
  * 動く床を初期位置・初速に戻す（ミス復帰・restart 用）。
  */
+function isMovingPlatformGroupUsable(
+  group: Phaser.Physics.Arcade.Group,
+): boolean {
+  if (!group.active) return false;
+  if (!group.scene?.sys) return false;
+  /** shutdown 後に参照だけ残ると getChildren 内で this.children が undefined になる */
+  const internals = group as unknown as { children?: unknown };
+  if (internals.children == null) return false;
+  return true;
+}
+
 export function resetMovingPlatforms(
   group: Phaser.Physics.Arcade.Group | null,
 ): void {
-  if (!group) return;
+  if (!group || !isMovingPlatformGroupUsable(group)) return;
   group.getChildren().forEach((child) => {
     const part = child as Phaser.Physics.Arcade.Sprite;
     const body = part.body;
@@ -128,7 +139,7 @@ export function resetMovingPlatforms(
 export function updateMovingPlatforms(
   group: Phaser.Physics.Arcade.Group | null,
 ): void {
-  if (!group) return;
+  if (!group || !isMovingPlatformGroupUsable(group)) return;
   group.getChildren().forEach((child) => {
     const part = child as Phaser.Physics.Arcade.Sprite;
     if (!part.getData("isMaster")) return;

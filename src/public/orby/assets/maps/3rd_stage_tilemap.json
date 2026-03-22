@@ -30,6 +30,63 @@
         }, 
         {
          "draworder":"topdown",
+         "id":5,
+         "name":"Enemies",
+         "objects":[
+                {
+                 "gid":34,
+                 "height":48,
+                 "id":12,
+                 "name":"",
+                 "properties":[
+                        {
+                         "name":"range",
+                         "type":"int",
+                         "value":200
+                        }, 
+                        {
+                         "name":"speed",
+                         "type":"int",
+                         "value":50
+                        }],
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":48,
+                 "x":96,
+                 "y":256
+                }],
+         "opacity":1,
+         "type":"objectgroup",
+         "visible":true,
+         "x":0,
+         "y":0
+        }, 
+        {
+         "draworder":"topdown",
+         "id":7,
+         "name":"traps",
+         "objects":[
+                {
+                 "gid":36,
+                 "height":16,
+                 "id":13,
+                 "name":"",
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":16,
+                 "x":16,
+                 "y":208
+                }],
+         "opacity":1,
+         "type":"objectgroup",
+         "visible":true,
+         "x":0,
+         "y":0
+        }, 
+        {
+         "draworder":"topdown",
          "id":3,
          "name":"objectsLayer",
          "objects":[
@@ -42,8 +99,32 @@
                  "type":"",
                  "visible":true,
                  "width":0,
-                 "x":39.3333,
+                 "x":47.3333,
                  "y":204.667
+                }, 
+                {
+                 "gid":37,
+                 "height":32,
+                 "id":14,
+                 "name":"Goal_flag",
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":32,
+                 "x":3140,
+                 "y":208.5
+                }, 
+                {
+                 "height":0,
+                 "id":15,
+                 "name":"Player_before_goal",
+                 "point":true,
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":0,
+                 "x":2983.5,
+                 "y":207
                 }],
          "opacity":1,
          "type":"objectgroup",
@@ -62,12 +143,12 @@
                  "name":"",
                  "polyline":[
                         {
-                         "x":7.99999999999999,
-                         "y":-7.99999999999997
+                         "x":8,
+                         "y":-8
                         }, 
                         {
-                         "x":104.060606060606,
-                         "y":-7.84848484848484
+                         "x":104.061,
+                         "y":-7.84848
                         }],
                  "properties":[
                         {
@@ -172,8 +253,8 @@
          "x":0,
          "y":0
         }],
- "nextlayerid":5,
- "nextobjectid":12,
+ "nextlayerid":8,
+ "nextobjectid":16,
  "orientation":"orthogonal",
  "renderorder":"right-down",
  "tiledversion":"1.11.2",
@@ -299,6 +380,75 @@
          "tilecount":16,
          "tileheight":16,
          "tilewidth":16
+        }, 
+        {
+         "columns":2,
+         "firstgid":34,
+         "image":"..\/graphics\/enemies\/Flame_1.png",
+         "imageheight":48,
+         "imagewidth":96,
+         "margin":0,
+         "name":"Flame_1",
+         "spacing":0,
+         "tilecount":2,
+         "tileheight":48,
+         "tiles":[
+                {
+                 "id":0,
+                 "properties":[
+                        {
+                         "name":"range",
+                         "type":"int",
+                         "value":100
+                        }, 
+                        {
+                         "name":"speed",
+                         "type":"int",
+                         "value":50
+                        }, 
+                        {
+                         "name":"type",
+                         "type":"string",
+                         "value":"flame"
+                        }]
+                }],
+         "tilewidth":48
+        }, 
+        {
+         "columns":1,
+         "firstgid":36,
+         "image":"..\/graphics\/environment\/hazards\/Spike.png",
+         "imageheight":16,
+         "imagewidth":16,
+         "margin":0,
+         "name":"Spike",
+         "spacing":0,
+         "tilecount":1,
+         "tileheight":16,
+         "tiles":[
+                {
+                 "id":0,
+                 "properties":[
+                        {
+                         "name":"type",
+                         "type":"string",
+                         "value":"spike"
+                        }]
+                }],
+         "tilewidth":16
+        }, 
+        {
+         "columns":5,
+         "firstgid":37,
+         "image":"..\/graphics\/items\/Flag_animation.png",
+         "imageheight":32,
+         "imagewidth":160,
+         "margin":0,
+         "name":"Flag_animation",
+         "spacing":0,
+         "tilecount":5,
+         "tileheight":32,
+         "tilewidth":32
         }],
  "tilewidth":16,
  "type":"map",

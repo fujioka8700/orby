@@ -1,5 +1,8 @@
 /// <reference types="phaser" />
-import { createGameAnimations } from "@/lib/game/animations";
+import {
+  createFlamePodobooAnimation,
+  createGameAnimations,
+} from "@/lib/game/animations";
 import {
   ASSET_KEYS,
   CASTLE_BG_HEIGHT,
@@ -55,7 +58,15 @@ import {
   UI_LIVES_POSITION,
   UI_NUMBER_TEXT_STYLE,
   DEPTH_BOUNCEPAD,
+  DEPTH_LAVA_FLOOR,
   DEPTH_PLAYER_AND_ENEMY,
+  LAVA_FLOOR_BOTTOM_MARGIN,
+  LAVA_FLOOR_COLLISION_INSET_TOP,
+  LAVA_FLOOR_SCREEN_OFFSET_Y,
+  LAVA_FLOOR_FRAME_COUNT,
+  LAVA_FLOOR_FRAME_HEIGHT,
+  LAVA_FLOOR_FRAME_RATE,
+  LAVA_FLOOR_TILE_SCROLL_SPEED,
   SPRING_SFX_MARKER_NORMAL,
   SPRING_SFX_MARKER_BIG,
 } from "@/lib/game/constants";
@@ -73,8 +84,28 @@ import {
 import { createGameClearScreen } from "@/lib/game/gameClearUI";
 import { getGameContainer, removeResumeListeners } from "@/lib/game/domUtils";
 import { createGameOverUI } from "@/lib/game/gameOverUI";
-import { globalControls } from "@/lib/game/globalControls";
+import { globalControls, resetGlobalControls } from "@/lib/game/globalControls";
+import {
+  ensureLavaFloorTrimmedTextures,
+  lavaFloorTrimmedTextureKey,
+} from "@/lib/game/lavaFloorTextures";
+import {
+  createPodobooFlames,
+  resetPodoboosToIdle,
+  updatePodobooFlames,
+} from "@/lib/game/podobooFlames";
+import { createSpikeTraps } from "@/lib/game/spikeTraps";
 import { loadGameAssets } from "@/lib/game/loadGameAssets";
+import {
+  applyRestartPreloadBlackHoldIfNeeded,
+  restoreCanvasStyleAfterBlackHold,
+  snapMainCameraFadeToCompletedBlackout,
+} from "@/lib/game/phaserBlackHold";
+import {
+  getRuntimeStageNumber,
+  getSceneTransitionData,
+  shouldSnapBlackOverlayAfterSceneReset,
+} from "@/lib/game/stageRuntime";
 import { createTitleScreen } from "@/lib/game/titleScreenUI";
 import {
   ARCADE_DEBUG,
@@ -83,7 +114,6 @@ import {
   DEBUG,
   PLAYER_START_POSITION,
   SKIP_TITLE_SCREEN,
-  STAGE_NUMBER,
   USE_IMAGE_BACKGROUND,
 } from "@/lib/game/phaserConfig";
 import type { EnemySprite } from "@/lib/game/types";
@@ -131,8 +161,13 @@ export function createMainScene(PhaserLib: typeof Phaser) {
     /** コンテナに登録した再開用リスナー除去用（iOS Safari でキャンバス外タッチを受け取る） */
     private gameOverContainer: HTMLElement | null = null;
     private gameOverContainerHandler: (() => void) | null = null;
+    /** ゲームクリア→タイトル遷移を二重に呼ばない・DOM リスナー除去用 */
+    private gameClearToTitleFired = false;
+    private gameClearContainer: HTMLElement | null = null;
+    private gameClearContainerHandler: (() => void) | null = null;
     private goalFlagSprite: Phaser.GameObjects.Sprite | null = null;
-    private bouncepads!: Phaser.GameObjects.Group;
+    /** 2nd のみセット。3rd 等では null（前ステージの破棄済み Group を参照しない） */
+    private bouncepads: Phaser.GameObjects.Group | null = null;
     /** トランポリン：着地ごとに1回だけ跳ねるため、現在乗っている pad を保持 */
     private playerOnBouncepad: Phaser.GameObjects.Sprite | null = null;
     /** 現在の上昇がトランポリン由来なら true（ジャンプキャンセルを適用しない） */
@@ -157,6 +192,15 @@ export function createMainScene(PhaserLib: typeof Phaser) {
     private coins!: Phaser.GameObjects.Group;
     /** 3rd ステージのみ：レール上を動くノコギリトラップ（PathFollower のグループ） */
     private circularSaws: Phaser.GameObjects.Group | undefined = undefined;
+    private lavaFloorTile: Phaser.GameObjects.TileSprite | undefined =
+      undefined;
+    private lavaFloorAnimAccumMs = 0;
+    private lavaFloorAnimFrameIndex = 0;
+    /** 3rd：溶岩から飛び出す Flame（Podoboo） */
+    private podobooFlames: Phaser.Physics.Arcade.Group | null = null;
+    /** 3rd：`traps` レイヤーのトゲ（StaticGroup。レイヤー未作成時は空） */
+    private spikeTraps: Phaser.Physics.Arcade.StaticGroup | undefined =
+      undefined;
     private readonly maxSpeed = GAME_CONSTANTS.MOVEMENT.MAX_SPEED;
     private readonly acceleration = GAME_CONSTANTS.MOVEMENT.ACCELERATION;
     private readonly deceleration = GAME_CONSTANTS.MOVEMENT.DECELERATION;
@@ -168,6 +212,8 @@ export function createMainScene(PhaserLib: typeof Phaser) {
     private bgmSound: Phaser.Sound.WebAudioSound | null = null;
     /** ゲームクリア画面用BGM（遷移時に停止するため参照を保持） */
     private gameClearBGM: Phaser.Sound.WebAudioSound | null = null;
+    /** `preload` 中にキャンバス背景を黒にしたとき、フェードイン完了で戻す */
+    private preloadCanvasBlackHold = false;
 
     constructor() {
       super({ key: "GameScene" });
@@ -181,6 +227,9 @@ export function createMainScene(PhaserLib: typeof Phaser) {
         );
         return;
       }
+      if (applyRestartPreloadBlackHoldIfNeeded(this)) {
+        this.preloadCanvasBlackHold = true;
+      }
       loadGameAssets(this);
     }
 
@@ -189,7 +238,24 @@ export function createMainScene(PhaserLib: typeof Phaser) {
         this.createSingleImageMode();
         return;
       }
+      const transitionData = getSceneTransitionData(this);
+      const resumeCampaign =
+        transitionData.resumeGameWithoutTitle === true;
+      const returnFromGameOver =
+        transitionData.returnToTitleFromGameOver === true;
       this.resetSceneStateForRestart();
+      if (transitionData.livesCount !== undefined) {
+        this.livesCount = transitionData.livesCount;
+        this.coinCount = transitionData.coinCount ?? 0;
+      }
+      if (
+        shouldSnapBlackOverlayAfterSceneReset(
+          transitionData,
+          this.getEffectiveStageNumber(),
+        )
+      ) {
+        snapMainCameraFadeToCompletedBlackout(this);
+      }
       const drawDebug = DEBUG && ARCADE_DEBUG;
       (this.physics.world as Phaser.Physics.Arcade.World).drawDebug = drawDebug;
       this.cameras.main.setBackgroundColor(SCENE_BACKGROUND_COLOR);
@@ -200,11 +266,13 @@ export function createMainScene(PhaserLib: typeof Phaser) {
         this.setupBackground2nd();
       } else if (this.getEffectiveStageNumber() === 3) {
         this.setupBackground3rd();
+        this.setupLavaFloor3rd();
       }
       this.setupPlayer();
       this.setupCamera();
       this.setupPlayerCollision();
       createGameAnimations(this);
+      createFlamePodobooAnimation(this);
       this.setupGoalFlag();
       if (this.getEffectiveStageNumber() === 2) {
         this.createBouncepadAnimation();
@@ -218,14 +286,35 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       if (this.getEffectiveStageNumber() === 3) {
         this.setupSawTraps();
         this.setupPlayerSawOverlap();
+        this.podobooFlames = createPodobooFlames(this, this.map, (obj, name) =>
+          this.getTiledPropertyNumber(obj, name),
+        );
+        this.setupPlayerPodobooOverlap();
+        this.spikeTraps = createSpikeTraps(this, this.map);
+        this.setupPlayerSpikeOverlap();
       }
       this.setupInput();
       this.setupLivesUI();
-      if (DEBUG && SKIP_TITLE_SCREEN) {
+      /** GAME OVER から戻るときはデバッグのタイトルスキップを無視して必ずタイトルを出す */
+      const skipTitle =
+        !returnFromGameOver &&
+        ((DEBUG && SKIP_TITLE_SCREEN) || resumeCampaign);
+      if (!skipTitle) {
+        this.setupTitleScreen();
+        if (returnFromGameOver) {
+          this.fadeInTitleScreenFromBlack(
+            GAME_CONSTANTS.CAMERA.FADE_DURATION_MS,
+          );
+        }
+      } else if (
+        this.getEffectiveStageNumber() === 2 ||
+        this.getEffectiveStageNumber() === 3
+      ) {
+        /** タイトル→1面・2・3 とも `FADE_DURATION_MS` に統一 */
+        this.fadeInThenEnableGameplay(GAME_CONSTANTS.CAMERA.FADE_DURATION_MS);
+      } else {
         this.gameStarted = true;
         this.startGameBGM();
-      } else {
-        this.setupTitleScreen();
       }
     }
 
@@ -283,20 +372,76 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       this.bgmSound?.stop();
     }
 
-    /** シーン再開時（GAME CLEAR→タイトルから戻った後）にゲームロジック・物理・残機・コインをリセット */
+    /**
+     * シーンの `create()` 冒頭で呼ぶ。タイトル復帰・ステージ間 restart・GAME OVER からの再開など共通。
+     * 前フレームの参照・フラグを消し、shutdown 後に残りがちな DOM リスナーも外す。
+     */
     private resetSceneStateForRestart() {
+      resetGlobalControls();
+      this.wasJumpPressed = false;
+      this.invincibleUntil = 0;
+
+      this.isGameOver = false;
+      this.gameOverRestartFired = false;
+      removeResumeListeners(this.gameOverContainer, this.gameOverContainerHandler);
+      this.gameOverContainer = null;
+      this.gameOverContainerHandler = null;
+      this.gameOverOverlay = null;
+      this.gameOverText = null;
+      this.gameOverContinueText = null;
+
+      this.isPlayingMissSequence = false;
+      this.missSequenceOnComplete = null;
+      this.isInFallDeathTransition = false;
+      this.isWaitingForFallDeathOffScreen = false;
+      this.wasMissWithZeroLives = false;
+
       this.goalReached = false;
+      this.goalText = null;
       this.isGameClear = false;
       this.gameClearScreenRef = null;
       this.gameClearBGM = null;
       this.gameStarted = false;
+
+      removeResumeListeners(this.gameClearContainer, this.gameClearContainerHandler);
+      this.gameClearContainer = null;
+      this.gameClearContainerHandler = null;
+      this.gameClearToTitleFired = false;
+
+      /** 前ステージの Group は shutdown で破棄されるが参照だけ残ると update で落ちる（例: 2→3） */
+      this.movingPlatforms = null;
+      this.playerOnMovingPlatform = null;
+      this.lastMovingPlatformX = 0;
       this.playerOnBouncepad = null;
+      this.bouncepads = null;
       this.jumpedFromTrampoline = false;
       this.jumpedFromTrampolineSuper = false;
       this.lastJumpPressedWhileInAir = 0;
+
+      this.circularSaws = undefined;
+      this.podobooFlames = null;
+      this.spikeTraps = undefined;
+      this.lavaFloorTile = undefined;
+      this.lavaFloorAnimAccumMs = 0;
+      this.lavaFloorAnimFrameIndex = 0;
+      this.background = null;
+
+      this.titleScreenRef = null;
+      this.stopGameBGM();
+      this.bgmSound = null;
+
+      this.enemies = [];
+      this.enemyStartPositions = [];
+
       this.physics.resume();
       this.livesCount = LIVES_INITIAL;
       this.coinCount = 0;
+
+      const cam = this.cameras?.main;
+      if (cam) {
+        cam.resetFX();
+        cam.stopFollow();
+      }
     }
 
     /** タイトル画面を表示し、タッチで startTitleFadeOut を呼ぶ */
@@ -360,22 +505,42 @@ export function createMainScene(PhaserLib: typeof Phaser) {
     private destroyTitleAndFadeInToGame(fadeDurationMs: number) {
       this.titleScreenRef?.destroy();
       this.titleScreenRef = null;
-      this.cameras.main.fadeIn(fadeDurationMs, 0, 0, 0);
-      this.cameras.main.once(
-        Phaser.Cameras.Scene2D.Events.FADE_IN_COMPLETE,
-        () => {
-          this.gameStarted = true;
-          this.startGameBGM();
-        },
-      );
+      this.fadeInThenEnableGameplay(fadeDurationMs);
     }
 
-    /** 有効なステージ番号（DEBUG 時のみ STAGE_NUMBER、そうでないときは 1） */
+    /**
+     * タイトル→1面・1→2→3 面のいずれも同じ手順: カメラを `fadeIn` し、完了後に `gameStarted` と BGM。
+     * （Phaser の `resetFX` は呼ばない。タイトル遷移と同一）
+     */
+    private fadeInThenEnableGameplay(fadeDurationMs: number) {
+      const cam = this.cameras.main;
+      cam.fadeIn(fadeDurationMs, 0, 0, 0);
+      cam.once(Phaser.Cameras.Scene2D.Events.FADE_IN_COMPLETE, () => {
+        this.releasePreloadCanvasBlackHoldStyle();
+        this.gameStarted = true;
+        this.startGameBGM();
+      });
+    }
+
+    /** GAME OVER から戻った直後: タイトルを黒から `FADE_DURATION_MS` でフェードイン（ゲーム開始はタッチ後） */
+    private fadeInTitleScreenFromBlack(fadeDurationMs: number) {
+      snapMainCameraFadeToCompletedBlackout(this);
+      const cam = this.cameras.main;
+      cam.fadeIn(fadeDurationMs, 0, 0, 0);
+      cam.once(Phaser.Cameras.Scene2D.Events.FADE_IN_COMPLETE, () => {
+        this.releasePreloadCanvasBlackHoldStyle();
+      });
+    }
+
+    private releasePreloadCanvasBlackHoldStyle(): void {
+      if (!this.preloadCanvasBlackHold) return;
+      restoreCanvasStyleAfterBlackHold(this);
+      this.preloadCanvasBlackHold = false;
+    }
+
+    /** 実際に読み込んだステージ（restart の runtimeStageNumber または phaserConfig） */
     private getEffectiveStageNumber(): 1 | 2 | 3 {
-      if (!DEBUG) return 1;
-      if (STAGE_NUMBER === 3) return 3;
-      if (STAGE_NUMBER === 2) return 2;
-      return 1;
+      return getRuntimeStageNumber(this);
     }
 
     /** 背景を画像（Forest_Background_0.png）で表示するか。1st のみ画像、2nd/3rd は Sky 背景。 */
@@ -506,6 +671,75 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       }
     }
 
+    /** 3rd ステージ：画面最下部に Lava.png の波打ち TileSprite を固定表示する。 */
+    private setupLavaFloor3rd() {
+      if (this.getEffectiveStageNumber() !== 3) return;
+      ensureLavaFloorTrimmedTextures(this);
+      const cam = this.cameras.main;
+      const cw = cam.width;
+      const ch = cam.height;
+      const trimmedKey = lavaFloorTrimmedTextureKey(0);
+      if (!this.textures.exists(trimmedKey)) return;
+      // トリミング後 16px 幅の単体テクスチャを横に繰り返し（setCrop では TileSprite が正しくタイルしない）
+      this.lavaFloorTile = this.add.tileSprite(
+        cw / 2,
+        ch - LAVA_FLOOR_BOTTOM_MARGIN + LAVA_FLOOR_SCREEN_OFFSET_Y,
+        cw,
+        LAVA_FLOOR_FRAME_HEIGHT,
+        trimmedKey,
+      );
+      this.lavaFloorTile.setOrigin(0.5, 1);
+      this.lavaFloorTile.setScrollFactor(0);
+      this.lavaFloorTile.setDepth(DEPTH_LAVA_FLOOR);
+      this.lavaFloorAnimAccumMs = 0;
+      this.lavaFloorAnimFrameIndex = 0;
+    }
+
+    /**
+     * 3rd ステージ：溶岩のコマ送り（トリミング済みテクスチャを setTexture で切替）と横タイルスクロール。
+     */
+    private updateLavaFloorScroll() {
+      if (this.getEffectiveStageNumber() !== 3 || !this.lavaFloorTile) return;
+      const msPerFrame = 1000 / LAVA_FLOOR_FRAME_RATE;
+      this.lavaFloorAnimAccumMs += this.game.loop.delta;
+      while (this.lavaFloorAnimAccumMs >= msPerFrame) {
+        this.lavaFloorAnimAccumMs -= msPerFrame;
+        this.lavaFloorAnimFrameIndex =
+          (this.lavaFloorAnimFrameIndex + 1) % LAVA_FLOOR_FRAME_COUNT;
+        this.lavaFloorTile.setTexture(
+          lavaFloorTrimmedTextureKey(this.lavaFloorAnimFrameIndex),
+        );
+      }
+      this.lavaFloorTile.tilePositionX += LAVA_FLOOR_TILE_SCROLL_SPEED;
+    }
+
+    /**
+     * 3rd ステージ：カメラ下端付近の溶岩帯にプレイヤー足元が入ったらミス。
+     * （scrollFactor 0 の表示に合わせ、ビューポート座標からワールド Y を求める）
+     */
+    private checkStage3LavaOverlap() {
+      if (this.getEffectiveStageNumber() !== 3 || !this.lavaFloorTile) return;
+      if (!this.player?.body) return;
+      if (this.isPlayingMissSequence || this.isInFallDeathTransition) return;
+      if (this.time.now < this.invincibleUntil) return;
+      const cam = this.cameras.main;
+      const ch = cam.height;
+      const cw = cam.width;
+      const lavaTopScreenY =
+        ch -
+        LAVA_FLOOR_BOTTOM_MARGIN -
+        LAVA_FLOOR_FRAME_HEIGHT +
+        LAVA_FLOOR_SCREEN_OFFSET_Y +
+        LAVA_FLOOR_COLLISION_INSET_TOP;
+      const worldTop = cam.getWorldPoint(cw / 2, lavaTopScreenY);
+      const lavaTopWorldY = worldTop.y;
+      const playerBody = this.player.body as Phaser.Physics.Arcade.Body;
+      if (playerBody.bottom >= lavaTopWorldY) {
+        this.isPlayingMissSequence = true;
+        this.triggerMiss();
+      }
+    }
+
     /** 3rd ステージ：sawPath レイヤーからレールを配置し、Polyline からノコギリを生成する。 */
     private setupSawTraps() {
       placeRailsFromLayer(this, this.map);
@@ -516,6 +750,18 @@ export function createMainScene(PhaserLib: typeof Phaser) {
     private setupPlayerSawOverlap() {
       if (!this.circularSaws) return;
       this.physics.add.overlap(this.player, this.circularSaws, () => {
+        if (this.isPlayingMissSequence) return;
+        if (this.isInFallDeathTransition) return;
+        if (this.time.now < this.invincibleUntil) return;
+        this.isPlayingMissSequence = true;
+        this.triggerMiss();
+      });
+    }
+
+    /** 3rd ステージ：トゲ（StaticGroup）との接触でミスとする。 */
+    private setupPlayerSpikeOverlap() {
+      if (!this.spikeTraps) return;
+      this.physics.add.overlap(this.player, this.spikeTraps, () => {
         if (this.isPlayingMissSequence) return;
         if (this.isInFallDeathTransition) return;
         if (this.time.now < this.invincibleUntil) return;
@@ -592,6 +838,11 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       Coin: ASSET_KEYS.COIN,
       Bird_1: ASSET_KEYS.BIRD_1,
       Spider_1: ASSET_KEYS.SPIDER,
+      /** 3rd：ゴール旗タイルオブジェクト用（1st も同名） */
+      Flag_animation: ASSET_KEYS.GOAL_FLAG,
+      Spike: ASSET_KEYS.SPIKE_BLOCK,
+      Flame_1: ASSET_KEYS.FLAME_1,
+      Rails: ASSET_KEYS.RAILS,
     };
 
     private collectTilesets(): Phaser.Tilemaps.Tileset[] {
@@ -609,7 +860,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
 
     /** グループが再利用可能か（scene 再開時などで clear して詰め替え可能） */
     private canReuseGroup(
-      group: Phaser.GameObjects.Group | undefined,
+      group: Phaser.GameObjects.Group | null | undefined,
     ): boolean {
       try {
         return (
@@ -623,6 +874,16 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       }
     }
 
+    /** shutdown 後に参照だけ残ると getChildren が落ちるため、反復前に必ず確認する */
+    private isGameObjectGroupUsable(
+      group: Phaser.GameObjects.Group | null | undefined,
+    ): group is Phaser.GameObjects.Group {
+      if (!group || !group.active) return false;
+      if (!group.scene?.sys) return false;
+      const internals = group as unknown as { children?: unknown };
+      return internals.children != null;
+    }
+
     /** オブジェクトレイヤーから名前が一致する最初のオブジェクトを返す */
     private findMapObject(
       ...names: string[]
@@ -630,6 +891,38 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       const layer = this.map.getObjectLayer(OBJECT_LAYER_NAME);
       if (!layer) return undefined;
       return layer.objects.find((obj) => names.includes(obj.name ?? ""));
+    }
+
+    /**
+     * objectsLayer からゴール旗オブジェクトを取得する。
+     * 名前（Goal_flag 等）または Flag_animation タイルセットのタイルオブジェクト（gid）で判定（ステージごとの firstgid 差を吸収）。
+     */
+    private findGoalFlagMapObject():
+      | Phaser.Types.Tilemaps.TiledObject
+      | undefined {
+      const layer = this.map.getObjectLayer(OBJECT_LAYER_NAME);
+      if (!layer) return undefined;
+      const flagTileset = this.map.tilesets.find((t) => t.name === "Flag_animation");
+      const firstGid = flagTileset?.firstgid;
+      const tileCount = flagTileset?.total ?? 0;
+      const nameList = GOAL_FLAG_OBJECT_NAMES as readonly string[];
+      for (const obj of layer.objects) {
+        const n = obj.name;
+        if (n != null && nameList.includes(n)) {
+          return obj;
+        }
+        const gid = (obj as { gid?: number }).gid;
+        if (
+          firstGid != null &&
+          tileCount > 0 &&
+          gid != null &&
+          gid >= firstGid &&
+          gid < firstGid + tileCount
+        ) {
+          return obj;
+        }
+      }
+      return undefined;
     }
 
     /** Tiled オブジェクトのカスタムプロパティ（数値）を取得する。オブジェクトに無ければ gid のタイル定義から取得 */
@@ -706,16 +999,23 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       return typeof p.value === "boolean" ? p.value : Boolean(p.value);
     }
 
-    /** DEBUG 時は phaserConfig.PLAYER_START_POSITION（2nd/3rd ステージでは常に "Player"）、そうでなければ "Player" */
+    /**
+     * DEBUG 時: phaserConfig の PLAYER_START_POSITION を参照。
+     * 2nd/3rd は "Player_before_goal" のときだけそのオブジェクト名、それ以外は "Player"。1st は設定値をそのまま。
+     */
     private getPlayerStartObjectName(): string {
       if (!DEBUG) return "Player";
-      if (this.getEffectiveStageNumber() === 2 || this.getEffectiveStageNumber() === 3)
-        return "Player";
+      const stage = this.getEffectiveStageNumber();
+      if (stage === 2 || stage === 3) {
+        return PLAYER_START_POSITION === "Player_before_goal"
+          ? "Player_before_goal"
+          : "Player";
+      }
       return PLAYER_START_POSITION;
     }
 
     private setupGoalFlag() {
-      const goalObj = this.findMapObject(...GOAL_FLAG_OBJECT_NAMES);
+      const goalObj = this.findGoalFlagMapObject();
       if (goalObj && goalObj.x !== undefined && goalObj.y !== undefined) {
         const flag = this.add.sprite(
           goalObj.x,
@@ -758,7 +1058,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       if (!this.textures.exists(ASSET_KEYS.BOUNCEPAD_RED)) return;
       const objectLayer = this.map.getObjectLayer(OBJECT_LAYER_NAME);
       if (!objectLayer) return;
-      if (this.canReuseGroup(this.bouncepads)) {
+      if (this.bouncepads !== null && this.canReuseGroup(this.bouncepads)) {
         this.bouncepads.clear(true, true);
       } else {
         this.bouncepads = this.add.group();
@@ -870,7 +1170,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
 
     /** プレイヤーが Bouncepad_Red の上に立っているか（その上だけなら通常ジャンプ不可）。足元に platform タイルがあれば false（通常ジャンプ可）。 */
     private isPlayerStandingOnBouncepad(): boolean {
-      if (!this.bouncepads) return false;
+      if (!this.isGameObjectGroupUsable(this.bouncepads)) return false;
       const playerBody = this.player.body as Phaser.Physics.Arcade.Body;
       if (!playerBody.touching.down && !playerBody.blocked.down) return false;
       if (this.isPlayerStandingOnPlatformTile()) return false;
@@ -961,10 +1261,23 @@ export function createMainScene(PhaserLib: typeof Phaser) {
         (durationSec - GOAL_SOUND_STOP_BEFORE_END_SEC) * 1000,
       );
       goalSound.play();
+      /** 1→2、2→3 はフェード後に次ステージへ。3のみゲームクリア画面 */
+      const nextRuntimeStage = this.getNextRuntimeStageAfterGoal();
       this.time.delayedCall(transitionAtMs, () => {
         goalSound.stop();
-        this.startTransitionToGameClear();
+        this.startTransitionToGameClear(nextRuntimeStage);
       });
+    }
+
+    /**
+     * ゴール時に続行する次のステージ番号。
+     * `null` のときはステージ3相当（最終面）のあとなのでゲームクリア画面へ。
+     */
+    private getNextRuntimeStageAfterGoal(): 2 | 3 | null {
+      const s = this.getEffectiveStageNumber();
+      if (s === 1) return 2;
+      if (s === 2) return 3;
+      return null;
     }
 
     /** 画面上に "GOAL!!" をバウンスアニメーションで表示 */
@@ -998,19 +1311,36 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       });
     }
 
-    /** GOAL!! 表示の 1.5 秒後にフェードアウトし、完了後にゲームクリア画面を表示してフェードイン */
-    private startTransitionToGameClear() {
+    /**
+     * GOAL!! のあとフェードアウト。
+     * @param nextRuntimeStage 指定時はゲームクリア画面を出さず、その番号のステージへ `restart`（1→2・2→3）
+     */
+    private startTransitionToGameClear(nextRuntimeStage: 2 | 3 | null) {
       this.stopGameBGM();
       const cam = this.cameras.main;
-      cam.once("camerafadeoutcomplete", () => {
+      /** タイトル開始時と同じフェード時間（`startTitleFadeOut` の `fadeOut` と一致） */
+      const fadeMs = GAME_CONSTANTS.CAMERA.FADE_DURATION_MS;
+      cam.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
+        if (nextRuntimeStage !== null) {
+          this.goalText?.destroy();
+          this.goalText = null;
+          this.scene.restart({
+            runtimeStageNumber: nextRuntimeStage,
+            livesCount: this.livesCount,
+            coinCount: this.coinCount,
+            resumeGameWithoutTitle: true,
+          });
+          return;
+        }
         this.showGameClearScreen();
         cam.fadeIn(GAME_CLEAR_FADE_DURATION_MS);
       });
-      cam.fadeOut(GAME_CLEAR_FADE_DURATION_MS);
+      cam.fadeOut(fadeMs, 0, 0, 0);
     }
 
     private showGameClearScreen() {
       this.isGameClear = true;
+      this.gameClearToTitleFired = false;
       this.player.setVisible(false);
       this.cameras.main.stopFollow();
       this.gameClearBGM = this.sound.add(
@@ -1028,11 +1358,37 @@ export function createMainScene(PhaserLib: typeof Phaser) {
         onUpdate: () => this.gameClearBGM?.setVolume(state.volume),
       });
       this.gameClearScreenRef = createGameClearScreen(this, {
-        onTouchToTitle: () => {
-          this.stopGameClearBGM();
-          this.scene.restart();
-        },
+        onTouchToTitle: () => this.returnToTitleFromGameClear(),
       });
+      this.addGameClearContainerListeners();
+    }
+
+    /**
+     * ゲームクリア画面からタイトルへ（タッチ／ポインタ）。
+     * 空のシーンデータで `restart` し、キャンペーン用の runtimeStage 等を引き継がない。
+     */
+    private returnToTitleFromGameClear() {
+      if (this.gameClearToTitleFired) return;
+      this.gameClearToTitleFired = true;
+      removeResumeListeners(this.gameClearContainer, this.gameClearContainerHandler);
+      this.gameClearContainer = null;
+      this.gameClearContainerHandler = null;
+      this.stopGameClearBGM();
+      this.gameClearScreenRef?.destroy();
+      this.gameClearScreenRef = null;
+      this.tweens.killAll();
+      this.scene.restart({});
+    }
+
+    /** iOS レターボックス含めタッチを拾う（GAME OVER と同様） */
+    private addGameClearContainerListeners() {
+      const container = getGameContainer(this);
+      if (!container) return;
+      const handler = () => this.returnToTitleFromGameClear();
+      container.addEventListener("touchstart", handler, { passive: true });
+      container.addEventListener("pointerdown", handler);
+      this.gameClearContainer = container;
+      this.gameClearContainerHandler = handler;
     }
 
     /** ゲームクリア画面用BGMを停止する（クリア画面から他画面へ遷移時） */
@@ -1352,6 +1708,18 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       } as Phaser.Types.Input.Keyboard.CursorKeys;
     }
 
+    /** 3rd ステージ：Podoboo（Flame）接触でミス */
+    private setupPlayerPodobooOverlap() {
+      if (!this.podobooFlames) return;
+      this.physics.add.overlap(this.player, this.podobooFlames, () => {
+        if (this.isPlayingMissSequence) return;
+        if (this.isInFallDeathTransition) return;
+        if (this.time.now < this.invincibleUntil) return;
+        this.isPlayingMissSequence = true;
+        this.triggerMiss();
+      });
+    }
+
     private setupPlayerEnemyOverlap() {
       this.physics.add.overlap(this.player, this.enemies, () => {
         if (this.isPlayingMissSequence) return;
@@ -1539,8 +1907,13 @@ export function createMainScene(PhaserLib: typeof Phaser) {
     private restartFromGameOver() {
       if (this.gameOverRestartFired) return;
       this.gameOverRestartFired = true;
-      this.destroyGameOverUI();
-      this.restart();
+      const duration = GAME_CONSTANTS.CAMERA.FADE_DURATION_MS;
+      const cam = this.cameras.main;
+      cam.fadeOut(duration, 0, 0, 0);
+      cam.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
+        this.destroyGameOverUI();
+        this.scene.restart({ returnToTitleFromGameOver: true });
+      });
     }
 
     /** GAME OVER 表示用のオーバーレイ・テキストとコンテナリスナーを破棄する */
@@ -1568,37 +1941,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
         const enemyBody = enemy.body as Phaser.Physics.Arcade.Body;
         enemyBody.setVelocity(0, 0);
       }
-    }
-
-    /** 残機・プレイヤーと敵の位置を初期状態に戻してゲームを再開する */
-    private restart() {
-      this.isGameOver = false;
-      this.isPlayingMissSequence = false;
-      this.missSequenceOnComplete = null;
-      this.isInFallDeathTransition = false;
-      this.isWaitingForFallDeathOffScreen = false;
-      this.wasMissWithZeroLives = false;
-
-      this.livesCount = LIVES_INITIAL;
-      this.updateLivesText();
-
-      this.coinCount = 0;
-      this.updateCoinsText();
-      this.setupCoins();
-
-      this.restorePlayerAppearance();
-      this.player.setVisible(true);
-      this.player.setPosition(this.playerStartX, this.playerStartY);
-      const playerBody = this.player.body as Phaser.Physics.Arcade.Body;
-      playerBody.setVelocity(0, 0);
-      playerBody.checkCollision.none = false;
-
-      this.resetEnemiesToStartPositions();
-      this.resetMovingPlatforms();
-      this.physics.resume();
-      this.startCameraFollow();
-      this.invincibleUntil = 0;
-      this.startGameBGM();
+      resetPodoboosToIdle(this.podobooFlames);
     }
 
     private setupLivesUI() {
@@ -1637,11 +1980,14 @@ export function createMainScene(PhaserLib: typeof Phaser) {
 
     update() {
       this.syncStage3BackgroundPosition();
+      this.updateLavaFloorScroll();
       if (this.shouldUpdateGameClearScreen()) {
         this.gameClearScreenRef?.update();
         return;
       }
       if (!this.gameStarted) return;
+      // GAME OVER 中もノコギリの見た目回転は続ける（早期 return の前で実行）
+      this.updateSawRotation();
       if (this.isGameOver) return;
       if (this.goalReached && !this.isGameClear) return;
       if (!this.player?.body) return;
@@ -1649,7 +1995,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       const playerBody = this.player.body as Phaser.Physics.Arcade.Body;
       const cameraBottom = this.cameras.main.scrollY + this.cameras.main.height;
 
-      this.updateSawRotation();
+      this.updatePodobooFlamesIfActive();
 
       if (this.isInFallDeathTransition) {
         this.updateMovingPlatforms();
@@ -1685,13 +2031,14 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       this.syncPlayerToMovingPlatform();
       if (
         this.playerOnBouncepad &&
-        this.bouncepads &&
-        !this.physics.overlap(this.player, this.playerOnBouncepad)
+        (!this.isGameObjectGroupUsable(this.bouncepads) ||
+          !this.physics.overlap(this.player, this.playerOnBouncepad))
       ) {
         this.playerOnBouncepad = null;
       }
       updateEnemiesAI(this, this.enemies, this.platformLayer);
       this.updateInvincibilityBlink();
+      this.checkStage3LavaOverlap();
     }
 
     /** 3rd ステージ：ノコギリの見た目を回転させる。 */
@@ -1700,6 +2047,11 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       for (const saw of this.circularSaws.getChildren()) {
         (saw as Phaser.GameObjects.Sprite).angle += SAW_ROTATION_SPEED;
       }
+    }
+
+    private updatePodobooFlamesIfActive() {
+      if (this.getEffectiveStageNumber() !== 3 || !this.podobooFlames) return;
+      updatePodobooFlames(this.podobooFlames);
     }
 
     private updateInvincibilityBlink() {

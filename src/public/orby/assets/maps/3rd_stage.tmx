@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="200" height="15" tilewidth="16" tileheight="16" infinite="0" nextlayerid="5" nextobjectid="12">
+<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="200" height="15" tilewidth="16" tileheight="16" infinite="0" nextlayerid="8" nextobjectid="16">
  <editorsettings>
   <export target="3rd_stage_tilemap.json" format="json"/>
  </editorsettings>
@@ -57,6 +57,27 @@
  <tileset firstgid="18" name="Rails" tilewidth="16" tileheight="16" tilecount="16" columns="4">
   <image source="../graphics/environment/interactive/Rails.png" width="64" height="64"/>
  </tileset>
+ <tileset firstgid="34" name="Flame_1" tilewidth="48" tileheight="48" tilecount="2" columns="2">
+  <image source="../graphics/enemies/Flame_1.png" width="96" height="48"/>
+  <tile id="0">
+   <properties>
+    <property name="range" type="int" value="100"/>
+    <property name="speed" type="int" value="50"/>
+    <property name="type" value="flame"/>
+   </properties>
+  </tile>
+ </tileset>
+ <tileset firstgid="36" name="Spike" tilewidth="16" tileheight="16" tilecount="1" columns="1">
+  <image source="../graphics/environment/hazards/Spike.png" width="16" height="16"/>
+  <tile id="0">
+   <properties>
+    <property name="type" value="spike"/>
+   </properties>
+  </tile>
+ </tileset>
+ <tileset firstgid="37" name="Flag_animation" tilewidth="32" tileheight="32" tilecount="5" columns="5">
+  <image source="../graphics/items/Flag_animation.png" width="160" height="32"/>
+ </tileset>
  <layer id="1" name="platform" width="200" height="15">
   <data encoding="csv">
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
@@ -76,8 +97,23 @@
 5,5,5,5,5,6,0,0,0,4,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5
 </data>
  </layer>
+ <objectgroup id="5" name="Enemies">
+  <object id="12" gid="34" x="96" y="256" width="48" height="48">
+   <properties>
+    <property name="range" type="int" value="200"/>
+    <property name="speed" type="int" value="50"/>
+   </properties>
+  </object>
+ </objectgroup>
+ <objectgroup id="7" name="traps">
+  <object id="13" gid="36" x="16" y="208" width="16" height="16"/>
+ </objectgroup>
  <objectgroup id="3" name="objectsLayer">
-  <object id="1" name="Player" x="39.3333" y="204.667">
+  <object id="1" name="Player" x="47.3333" y="204.667">
+   <point/>
+  </object>
+  <object id="14" name="Goal_flag" gid="37" x="3140" y="208.5" width="32" height="32"/>
+  <object id="15" name="Player_before_goal" x="2983.5" y="207">
    <point/>
   </object>
  </objectgroup>

@@ -326,7 +326,12 @@ export const ASSET_KEYS = {
   TILESET_CLOUD: "tilesetCloud",
   TILESET_BRICK: "tilesetBrick",
   TILESET_LAVA: "tilesetLava",
+  /** 画面下部の波打ち溶岩用（同一画像を spritesheet として二重登録） */
+  LAVA_FLOOR: "lavaFloor",
   CIRCULAR_SAW: "circularSaw",
+  /** 3rd：溶岩から飛び出す Podoboo 風エネミー（Flame_1.png） */
+  FLAME_1: "flame1",
+  SPIKE_BLOCK: "spikeBlock",
   RAILS: "rails",
   COIN: "coin",
   COINS_UI: "coinsUi",
@@ -373,6 +378,29 @@ export const MOVING_PLATFORM_DEFAULT_SPEED = 100;
 /** 動く床のデフォルト往復距離（px）。Tiled の distance プロパティ未設定時 */
 export const MOVING_PLATFORM_DEFAULT_DISTANCE = 150;
 
+/** 3rd ステージ：トゲトラップ用オブジェクトレイヤー名（Tiled で type: spike を付与） */
+export const TRAPS_LAYER_NAME = "traps";
+/** Tiled オブジェクトの type（小文字比較）でトゲとみなす */
+export const SPIKE_OBJECT_TYPE = "spike";
+/**
+ * 3rd_stage_tilemap.json の Spike タイルセットの firstgid・タイル数。
+ * タイルオブジェクトはオブジェクトの type が空でも gid でトゲと判定する。
+ */
+export const SPIKE_TILE_FIRST_GID = 36;
+export const SPIKE_TILE_GID_COUNT = 1;
+/** Spike.png（16×16）の既定表示サイズ（px） */
+export const SPIKE_BLOCK_DISPLAY_SIZE = 16;
+/** トゲの当たり（見た目より小さめ）。スプライト左上基準のオフセット */
+export const SPIKE_BODY_WIDTH = 10;
+export const SPIKE_BODY_HEIGHT = 10;
+export const SPIKE_BODY_OFFSET_X = 3;
+export const SPIKE_BODY_OFFSET_Y = 6;
+/** 描画深度（足場より手前、プレイヤーより奥） */
+export const DEPTH_SPIKE = 55;
+/** 3rd：トゲ画像 */
+export const SPIKE_BLOCK_ASSET =
+  "/orby/assets/graphics/environment/hazards/Spike.png";
+
 /** 3rd ステージ：ノコギリの軌道を定義するオブジェクトレイヤー名（Tiled の Polyline） */
 export const SAW_PATH_LAYER_NAME = "sawPath";
 /** 3rd ステージ：ノコギリ画像（Circular_Saw.png） */
@@ -392,3 +420,71 @@ export const RAILS_TILE_SIZE = 16;
 export const RAILS_FIRST_GID = 18;
 /** Rails タイルセットのタイル数（4x4=16）。gid 有効範囲の判定に使用。 */
 export const RAILS_TILE_COUNT = 16;
+
+/** Lava.png（384×64）を横 8 コマのスプライトシートとして扱うときの 1 フレームサイズ */
+export const LAVA_FLOOR_FRAME_WIDTH = 48;
+export const LAVA_FLOOR_FRAME_HEIGHT = 64;
+export const LAVA_FLOOR_FRAME_COUNT = 8;
+/** 各フレームの左右をこの px ずつ切り捨て、タイル繰り返しの単位幅を狭める */
+export const LAVA_FLOOR_TRIM_LEFT = 16;
+export const LAVA_FLOOR_TRIM_RIGHT = 16;
+/** トリミング後の 1 コマの幅（TileSprite の横リピート単位） */
+export const LAVA_FLOOR_CROP_WIDTH =
+  LAVA_FLOOR_FRAME_WIDTH - LAVA_FLOOR_TRIM_LEFT - LAVA_FLOOR_TRIM_RIGHT;
+/**
+ * 左右トリミング後の各フレームを Canvas に焼き付けて登録するテクスチャキー接頭辞。
+ * TileSprite の setCrop は横タイルと相性が悪いため、この画像でリピートする。
+ */
+export const LAVA_FLOOR_TRIMMED_TEXTURE_PREFIX = "lavaFloorTrimmedFrame";
+/** 画面下端からのオフセット（px）。溶岩 TileSprite の下端（origin 1）の位置。 */
+export const LAVA_FLOOR_BOTTOM_MARGIN = 16;
+/** 上記に加える画面 Y 方向オフセット（px）。正の値で下に移動。 */
+export const LAVA_FLOOR_SCREEN_OFFSET_Y = 48;
+/** スプライト上端からこの高さ（px）は当たり判定なし（見た目のみの余白）。 */
+export const LAVA_FLOOR_COLLISION_INSET_TOP = 20;
+/** 溶岩タイルの横スクロール量（px/フレーム）。波の見た目用。 */
+/** 0 で横方向の流れなし（コマアニメのみ） */
+export const LAVA_FLOOR_TILE_SCROLL_SPEED = 0;
+/** 溶岩レイヤーの描画深度（足場 0 より手前、プレイヤー 101 より奥） */
+export const DEPTH_LAVA_FLOOR = 10;
+/** 画面下部溶岩 TileSprite のコマ送り（fps）。TileSprite は anims.play 非対応のため手動 setFrame で使用 */
+export const LAVA_FLOOR_FRAME_RATE = 10;
+
+/** Flame_1.png（96×48）：3rd タイルマップの Flame_1 タイルセットと同一（48×48・2コマ） */
+export const FLAME_1_ASSET =
+  "/orby/assets/graphics/enemies/Flame_1.png";
+export const FLAME_1_FRAME_WIDTH = 48;
+export const FLAME_1_FRAME_HEIGHT = 48;
+export const FLAME_1_FRAME_COUNT = 2;
+/** 3rd_stage_tilemap.json の Flame_1 タイルセット firstgid */
+export const FLAME_1_FIRST_GID = 34;
+/** Tiled オブジェクトの type で Podoboo を置くときの識別子（objectsLayer のポイント等） */
+export const PODOBOO_OBJECT_TYPE = "flame";
+/** Phaser アニメーションキー（animations.ts で登録） */
+export const PODOBOO_ANIM_KEY = "flame-podoboo-burn";
+/**
+ * Tiled の range（タイル未設定時の既定）＝噴出口からの到達高さ（px）。
+ * 初速は Arcade 重力から vy = -sqrt(2 * g * range) で算出する。
+ */
+export const PODOBOO_DEFAULT_RANGE = 100;
+/** Tiled の speed（タイル未設定時の既定）。大きいほど噴出の間隔が短い */
+export const PODOBOO_DEFAULT_SPEED = 50;
+/** speed がこの値のとき PODOBOO_REF_INTERVAL_MS を基準間隔とする */
+export const PODOBOO_REF_SPEED_FOR_INTERVAL = 50;
+/** PODOBOO_REF_SPEED_FOR_INTERVAL のときの待機時間（ms） */
+export const PODOBOO_REF_INTERVAL_MS = 3000;
+/** range のクランプ（px） */
+export const PODOBOO_RANGE_MIN_PX = 4;
+export const PODOBOO_RANGE_MAX_PX = 360;
+/** 待機～次ジャンプまでの間隔クランプ（ms）。speed から算出後に適用 */
+export const PODOBOO_INTERVAL_MIN_MS = 600;
+export const PODOBOO_INTERVAL_MAX_MS = 8000;
+/** 待機時：噴出口より下に沈める量（px）。見えない位置 */
+export const PODOBOO_HIDE_OFFSET_Y = 56;
+/** 描画深度。溶岩帯（DEPTH_LAVA_FLOOR）より奥＝溶岩の下のレイヤー。足場 0 より手前 */
+export const DEPTH_PODOBOO = 6;
+/** 当たり（スプライト左上基準のオフセットとサイズ） */
+export const PODOBOO_BODY_WIDTH = 12;
+export const PODOBOO_BODY_HEIGHT = 14;
+export const PODOBOO_BODY_OFFSET_X = 18;
+export const PODOBOO_BODY_OFFSET_Y = 18;

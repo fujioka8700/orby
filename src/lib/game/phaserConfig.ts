@@ -12,13 +12,22 @@ export const DEBUG = true;
 export const ARCADE_DEBUG = false;
 
 /**
+ * ステージ番号（DEBUG 時のみ有効）。
+ * - 1: 1st ステージ（1st_stage_tilemap.json）
+ * - 2: 2nd ステージ（2nd_stage_tilemap.json）
+ * - 3: 3rd ステージ（3rd_stage_tilemap.json）
+ * DEBUG = false のときは常に 1st ステージを表示する。
+ */
+export const STAGE_NUMBER = 1;
+
+/**
  * プレイヤーの初期位置（DEBUG 時のみ有効）。
  * - "Player": ステージ最初の地点
  * - "Player_before_goal": ゴール直前の地点
  * DEBUG = false のときは常に "Player" が使われる。
  */
 export type PlayerStartPosition = "Player" | "Player_before_goal";
-export const PLAYER_START_POSITION: PlayerStartPosition = "Player";
+export const PLAYER_START_POSITION: PlayerStartPosition = "Player_before_goal";
 
 /**
  * 背景を画像で表示するか、灰色にするか（DEBUG 時のみ有効）。
@@ -34,7 +43,7 @@ export const USE_IMAGE_BACKGROUND = true;
  * - false: タイトル画面を表示し、タッチでゲーム開始
  * DEBUG = false のときは常にタイトル画面から開始する。
  */
-export const SKIP_TITLE_SCREEN = true;
+export const SKIP_TITLE_SCREEN = false;
 
 /**
  * 単一画像用の画面にする（DEBUG 時のみ有効。他デバッグ項目は無視）。
@@ -44,15 +53,6 @@ export const SKIP_TITLE_SCREEN = true;
 export const CREATE_A_SINGLE_IMAGE = false;
 /** CREATE_A_SINGLE_IMAGE 時の背景色（灰色） */
 export const CREATE_A_SINGLE_IMAGE_BACKGROUND = 0x808080;
-
-/**
- * ステージ番号（DEBUG 時のみ有効）。
- * - 1: 1st ステージ（1st_stage_tilemap.json）
- * - 2: 2nd ステージ（2nd_stage_tilemap.json）
- * - 3: 3rd ステージ（3rd_stage_tilemap.json）
- * DEBUG = false のときは常に 1st ステージを表示する。
- */
-export const STAGE_NUMBER = 3;
 
 /**
  * BGM をオフにするか（DEBUG 時のみ有効）。

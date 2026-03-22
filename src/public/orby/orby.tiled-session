@@ -19,7 +19,7 @@
             "scale": 2,
             "selectedLayer": 2,
             "viewCenter": {
-                "x": 1592.5,
+                "x": 3012.75,
                 "y": 263.5
             }
         },
@@ -70,16 +70,13 @@
         },
         "assets/maps/2nd_stage.tmx": {
             "expandedObjectLayers": [
-                6,
-                7,
-                9,
                 2
             ],
-            "scale": 0.75,
+            "scale": 1.5,
             "selectedLayer": 3,
             "viewCenter": {
-                "x": 1440,
-                "y": 120
+                "x": 2671,
+                "y": 147.33333333333331
             }
         },
         "assets/maps/2nd_stage.tmx#Bird_1": {
@@ -97,7 +94,8 @@
             "scaleInDock": 1
         },
         "assets/maps/2nd_stage.tmx#Flag_animation": {
-            "scaleInDock": 1
+            "scaleInDock": 1,
+            "scaleInEditor": 1
         },
         "assets/maps/2nd_stage.tmx#Grass_Rock_Tileset": {
             "scaleInDock": 1,
@@ -117,21 +115,36 @@
         },
         "assets/maps/3rd_stage.tmx": {
             "expandedObjectLayers": [
+                7,
                 3
             ],
-            "scale": 1.5,
-            "selectedLayer": 2,
+            "scale": 1,
+            "selectedLayer": 3,
             "viewCenter": {
-                "x": 129,
-                "y": 126.66666666666666
+                "x": 2959.5,
+                "y": 195
             }
         },
         "assets/maps/3rd_stage.tmx#Brick_Tileset": {
             "scaleInDock": 1,
             "scaleInEditor": 1
         },
+        "assets/maps/3rd_stage.tmx#Flag_animation": {
+            "scaleInDock": 1
+        },
+        "assets/maps/3rd_stage.tmx#Flame_1": {
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
         "assets/maps/3rd_stage.tmx#Lava": {
             "scaleInDock": 1
+        },
+        "assets/maps/3rd_stage.tmx#Rails": {
+            "scaleInDock": 1
+        },
+        "assets/maps/3rd_stage.tmx#Spike": {
+            "scaleInDock": 1,
+            "scaleInEditor": 1
         },
         "assets/maps/Grass_Tileset.tsx": {
             "scaleInDock": 1,
@@ -181,7 +194,7 @@
     ],
     "tileset.embedInMap": true,
     "tileset.tileSize": {
-        "height": 16,
-        "width": 16
+        "height": 32,
+        "width": 32
     }
 }

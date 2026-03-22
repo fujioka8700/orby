@@ -14,6 +14,8 @@ import {
   GAME_CONSTANTS,
   GOAL_FLAG_ASSET,
   GOAL_FLAG_SIZE,
+  LAVA_FLOOR_FRAME_HEIGHT,
+  LAVA_FLOOR_FRAME_WIDTH,
   LIVES_ICON_ASSET,
   LIVES_ICON_FRAME_HEIGHT,
   LIVES_ICON_FRAME_WIDTH,
@@ -31,6 +33,10 @@ import {
   SPIDER_ASSET,
   BACKGROUND_CASTLE_1_ASSET,
   CIRCULAR_SAW_ASSET,
+  FLAME_1_ASSET,
+  SPIKE_BLOCK_ASSET,
+  FLAME_1_FRAME_HEIGHT,
+  FLAME_1_FRAME_WIDTH,
   RAILS_ASSET,
   RAILS_TILE_SIZE,
   BACKGROUND_SKY_0_ASSET,
@@ -39,15 +45,7 @@ import {
   TILEMAP_ASSETS,
   TITLE_ASSET,
 } from "@/lib/game/constants";
-import { DEBUG, STAGE_NUMBER } from "@/lib/game/phaserConfig";
-
-/** 使用するステージ番号（DEBUG 時のみ STAGE_NUMBER、そうでないときは 1） */
-function getEffectiveStageNumber(): 1 | 2 | 3 {
-  if (!DEBUG) return 1;
-  if (STAGE_NUMBER === 3) return 3;
-  if (STAGE_NUMBER === 2) return 2;
-  return 1;
-}
+import { getRuntimeStageNumber } from "@/lib/game/stageRuntime";
 
 /** メインシーン用アセットをすべてプリロードする */
 export function loadGameAssets(scene: Phaser.Scene): void {
@@ -71,14 +69,19 @@ export function loadGameAssets(scene: Phaser.Scene): void {
     TILEMAP_ASSETS.tilesetGrassRock,
   );
   load.image(ASSET_KEYS.TILESET_CLOUD, TILEMAP_ASSETS.tilesetCloud);
-  const stageNumber = getEffectiveStageNumber();
+  const stageNumber = getRuntimeStageNumber(scene);
   const tilemapUrl =
     stageNumber === 3
       ? TILEMAP_ASSETS.tilemap3rd
       : stageNumber === 2
         ? TILEMAP_ASSETS.tilemap2nd
         : TILEMAP_ASSETS.tilemap;
-  load.tilemapTiledJSON(ASSET_KEYS.TILEMAP, tilemapUrl);
+  const tilemapKey = ASSET_KEYS.TILEMAP;
+  const tilemapCache = scene.cache.tilemap;
+  if (tilemapCache.exists(tilemapKey)) {
+    tilemapCache.remove(tilemapKey);
+  }
+  load.tilemapTiledJSON(tilemapKey, tilemapUrl);
   if (stageNumber === 2) {
     load.spritesheet(ASSET_KEYS.BOUNCEPAD_RED, BOUNCEPAD_RED_ASSET, {
       frameWidth: BOUNCEPAD_RED_SIZE,
@@ -89,12 +92,21 @@ export function loadGameAssets(scene: Phaser.Scene): void {
   if (stageNumber === 3) {
     load.image(ASSET_KEYS.TILESET_BRICK, TILEMAP_ASSETS.tilesetBrick);
     load.image(ASSET_KEYS.TILESET_LAVA, TILEMAP_ASSETS.tilesetLava);
+    load.spritesheet(ASSET_KEYS.LAVA_FLOOR, TILEMAP_ASSETS.tilesetLava, {
+      frameWidth: LAVA_FLOOR_FRAME_WIDTH,
+      frameHeight: LAVA_FLOOR_FRAME_HEIGHT,
+    });
     load.image(ASSET_KEYS.BACKGROUND_CASTLE_1, BACKGROUND_CASTLE_1_ASSET);
     load.image(ASSET_KEYS.CIRCULAR_SAW, CIRCULAR_SAW_ASSET);
     load.spritesheet(ASSET_KEYS.RAILS, RAILS_ASSET, {
       frameWidth: RAILS_TILE_SIZE,
       frameHeight: RAILS_TILE_SIZE,
     });
+    load.spritesheet(ASSET_KEYS.FLAME_1, FLAME_1_ASSET, {
+      frameWidth: FLAME_1_FRAME_WIDTH,
+      frameHeight: FLAME_1_FRAME_HEIGHT,
+    });
+    load.image(ASSET_KEYS.SPIKE_BLOCK, SPIKE_BLOCK_ASSET);
   }
   load.spritesheet(ASSET_KEYS.PLAYER, PLAYER_ASSET, {
     frameWidth: GAME_CONSTANTS.PLAYER.FRAME_WIDTH,
