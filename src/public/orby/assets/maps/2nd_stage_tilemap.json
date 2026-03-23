@@ -760,18 +760,6 @@
                  "y":240
                 }, 
                 {
-                 "gid":19,
-                 "height":48,
-                 "id":24,
-                 "name":"",
-                 "rotation":0,
-                 "type":"",
-                 "visible":true,
-                 "width":48,
-                 "x":2368,
-                 "y":240
-                }, 
-                {
                  "height":0,
                  "id":69,
                  "name":"Player_before_goal",
@@ -780,8 +768,20 @@
                  "type":"",
                  "visible":true,
                  "width":0,
-                 "x":2630.66666666667,
-                 "y":222.666666666667
+                 "x":2630.67,
+                 "y":222.667
+                }, 
+                {
+                 "gid":20,
+                 "height":48,
+                 "id":70,
+                 "name":"Bouncepad_Red",
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":48,
+                 "x":2368,
+                 "y":240
                 }],
          "opacity":1,
          "type":"objectgroup",
@@ -969,7 +969,7 @@
          "y":0
         }],
  "nextlayerid":10,
- "nextobjectid":70,
+ "nextobjectid":71,
  "orientation":"orthogonal",
  "renderorder":"right-down",
  "tiledversion":"1.11.2",

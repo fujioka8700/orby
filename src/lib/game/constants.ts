@@ -332,6 +332,7 @@ export const ASSET_KEYS = {
   TILESET_CLOUD: "tilesetCloud",
   TILESET_BRICK: "tilesetBrick",
   TILESET_LAVA: "tilesetLava",
+  TILESET_STONE: "tilesetStone",
   /** 画面下部の波打ち溶岩用（同一画像を spritesheet として二重登録） */
   LAVA_FLOOR: "lavaFloor",
   CIRCULAR_SAW: "circularSaw",
@@ -371,6 +372,7 @@ export const TILEMAP_ASSETS = {
   tilemap3rd: "/orby/assets/maps/3rd_stage_tilemap.json",
   tilesetBrick: "/orby/assets/graphics/environment/tilesets/Brick_Tileset.png",
   tilesetLava: "/orby/assets/graphics/backgrounds/Lava.png",
+  tilesetStone: "/orby/assets/graphics/environment/tilesets/Stone_Tileset.png",
 } as const;
 
 /** Platform.png スプライトシート用（タイルマップの Platform タイルセット読み込み用） */

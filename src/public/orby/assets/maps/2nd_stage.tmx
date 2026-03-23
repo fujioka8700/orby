@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="180" height="15" tilewidth="16" tileheight="16" infinite="0" nextlayerid="10" nextobjectid="70">
+<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="180" height="15" tilewidth="16" tileheight="16" infinite="0" nextlayerid="10" nextobjectid="71">
  <editorsettings>
   <export target="2nd_stage_tilemap.json" format="json"/>
  </editorsettings>
@@ -289,10 +289,10 @@
   </object>
   <object id="2" name="Goal_flag" gid="10" x="2816" y="224" width="32" height="32"/>
   <object id="6" name="Bouncepad_Red" gid="20" x="1104" y="240" width="48" height="48"/>
-  <object id="24" gid="19" x="2368" y="240" width="48" height="48"/>
   <object id="69" name="Player_before_goal" x="2630.67" y="222.667">
    <point/>
   </object>
+  <object id="70" name="Bouncepad_Red" gid="20" x="2368" y="240" width="48" height="48"/>
  </objectgroup>
  <objectgroup id="9" name="Enemies">
   <object id="22" gid="25" x="288" y="240" width="64" height="48"/>

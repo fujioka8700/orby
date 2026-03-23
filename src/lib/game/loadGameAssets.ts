@@ -83,7 +83,7 @@ export function loadGameAssets(scene: Phaser.Scene): void {
     tilemapCache.remove(tilemapKey);
   }
   load.tilemapTiledJSON(tilemapKey, tilemapUrl);
-  if (stageNumber === 2) {
+  if (stageNumber === 2 || stageNumber === 3) {
     load.spritesheet(ASSET_KEYS.BOUNCEPAD_RED, BOUNCEPAD_RED_ASSET, {
       frameWidth: BOUNCEPAD_RED_SIZE,
       frameHeight: BOUNCEPAD_RED_SIZE,
@@ -93,6 +93,7 @@ export function loadGameAssets(scene: Phaser.Scene): void {
   if (stageNumber === 3) {
     load.image(ASSET_KEYS.TILESET_BRICK, TILEMAP_ASSETS.tilesetBrick);
     load.image(ASSET_KEYS.TILESET_LAVA, TILEMAP_ASSETS.tilesetLava);
+    load.image(ASSET_KEYS.TILESET_STONE, TILEMAP_ASSETS.tilesetStone);
     load.spritesheet(ASSET_KEYS.LAVA_FLOOR, TILEMAP_ASSETS.tilesetLava, {
       frameWidth: LAVA_FLOOR_FRAME_WIDTH,
       frameHeight: LAVA_FLOOR_FRAME_HEIGHT,

@@ -261,11 +261,12 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       (this.physics.world as Phaser.Physics.Arcade.World).drawDebug = drawDebug;
       this.cameras.main.setBackgroundColor(SCENE_BACKGROUND_COLOR);
       this.setupTilemap();
+      const effectiveStageNumber = this.getEffectiveStageNumber();
       if (this.shouldUseImageBackground()) {
         this.setupBackground();
-      } else if (this.getEffectiveStageNumber() === 2) {
+      } else if (effectiveStageNumber === 2) {
         this.setupBackground2nd();
-      } else if (this.getEffectiveStageNumber() === 3) {
+      } else if (effectiveStageNumber === 3) {
         this.setupBackground3rd();
         this.setupLavaFloor3rd();
       }
@@ -275,7 +276,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       createGameAnimations(this);
       createFlamePodobooAnimation(this);
       this.setupGoalFlag();
-      if (this.getEffectiveStageNumber() === 2) {
+      if (effectiveStageNumber === 2 || effectiveStageNumber === 3) {
         this.createBouncepadAnimation();
         this.setupBouncepads();
       }
@@ -284,7 +285,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       this.setupPlayerGoalOverlap();
       this.setupEnemies();
       this.setupPlayerEnemyOverlap();
-      if (this.getEffectiveStageNumber() === 3) {
+      if (effectiveStageNumber === 3) {
         this.setupSawTraps();
         this.setupPlayerSawOverlap();
         this.podobooFlames = createPodobooFlames(this, this.map, (obj, name) =>
@@ -836,6 +837,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       Cloud_Tileset: ASSET_KEYS.TILESET_CLOUD,
       Brick_Tileset: ASSET_KEYS.TILESET_BRICK,
       Lava: ASSET_KEYS.TILESET_LAVA,
+      Stone_Tileset: ASSET_KEYS.TILESET_STONE,
       Coin: ASSET_KEYS.COIN,
       Bird_1: ASSET_KEYS.BIRD_1,
       Spider_1: ASSET_KEYS.SPIDER,
@@ -1054,7 +1056,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       });
     }
 
-    /** 2nd ステージ用：Bouncepad_Red をトランポリンとして配置し、プレイヤーが乗ると跳ね上げる */
+    /** 2nd/3rd ステージ用：Bouncepad_Red をトランポリンとして配置する */
     private setupBouncepads() {
       if (!this.textures.exists(ASSET_KEYS.BOUNCEPAD_RED)) return;
       const objectLayer = this.map.getObjectLayer(OBJECT_LAYER_NAME);
@@ -1064,14 +1066,17 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       } else {
         this.bouncepads = this.add.group();
       }
+      const bouncepadTileset = this.map.tilesets.find(
+        (t) => t.name === BOUNCEPAD_RED_OBJECT_NAME,
+      );
+      const firstGid = bouncepadTileset?.firstgid;
+      const tileCount = bouncepadTileset?.total ?? 0;
+
       const bouncepadObjects = objectLayer.objects.filter((obj) => {
         if (obj.name === BOUNCEPAD_RED_OBJECT_NAME) return true;
         const gid = (obj as { gid?: number }).gid;
-        return (
-          gid != null &&
-          gid >= BOUNCEPAD_RED_FIRST_GID &&
-          gid < BOUNCEPAD_RED_FIRST_GID + 3
-        );
+        if (firstGid == null || tileCount <= 0 || gid == null) return false;
+        return gid >= firstGid && gid < firstGid + tileCount;
       });
       for (const obj of bouncepadObjects) {
         if (obj.x === undefined || obj.y === undefined) continue;

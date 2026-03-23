@@ -22,7 +22,7 @@
             "scale": 2,
             "selectedLayer": 2,
             "viewCenter": {
-                "x": 3012.75,
+                "x": 1592.5,
                 "y": 263.5
             }
         },
@@ -78,8 +78,8 @@
             "scale": 1.5,
             "selectedLayer": 3,
             "viewCenter": {
-                "x": 2671,
-                "y": 147.33333333333331
+                "x": 2392.333333333333,
+                "y": 264
             }
         },
         "assets/maps/2nd_stage.tmx#Bird_1": {
@@ -119,14 +119,18 @@
         "assets/maps/3rd_stage.tmx": {
             "expandedObjectLayers": [
                 7,
+                5,
                 3
             ],
-            "scale": 2,
-            "selectedLayer": 3,
+            "scale": 1,
+            "selectedLayer": 0,
             "viewCenter": {
-                "x": 2993.75,
-                "y": 188
+                "x": 2913.5,
+                "y": 248
             }
+        },
+        "assets/maps/3rd_stage.tmx#Bouncepad_Red": {
+            "scaleInDock": 1
         },
         "assets/maps/3rd_stage.tmx#Brick_Tileset": {
             "scaleInDock": 1,
@@ -146,6 +150,10 @@
             "scaleInDock": 1
         },
         "assets/maps/3rd_stage.tmx#Spike": {
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "assets/maps/3rd_stage.tmx#Stone_Tileset": {
             "scaleInDock": 1,
             "scaleInEditor": 1
         },
@@ -185,7 +193,7 @@
         "assets/maps/3rd_stage.tmx"
     ],
     "project": "orby.tiled-project",
-    "property.type": "string",
+    "property.type": "bool",
     "recentFiles": [
         "assets/maps/1st_stage.tmx",
         "assets/maps/2nd_stage.tmx",
@@ -197,7 +205,7 @@
     ],
     "tileset.embedInMap": true,
     "tileset.tileSize": {
-        "height": 32,
-        "width": 32
+        "height": 48,
+        "width": 48
     }
 }
