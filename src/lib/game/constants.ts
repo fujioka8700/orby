@@ -1,3 +1,5 @@
+import { PLAYER_INITIAL_LIVES } from "@/lib/game/phaserConfig";
+
 export const GAME_WIDTH = 256;
 export const GAME_HEIGHT = 240;
 
@@ -115,7 +117,7 @@ export const COIN_ASSET = "/orby/assets/graphics/items/Coin.png";
 export const COIN_SIZE = 16;
 
 /** 残機UI */
-export const LIVES_INITIAL = 2;
+export const LIVES_INITIAL = PLAYER_INITIAL_LIVES;
 export const UI_LIVES_POSITION = { x: 16, y: 16 } as const;
 export const UI_LIVES_ICON_SIZE = 16;
 /** 残機・コインアイコンの下方向オフセット（数値とトップを揃えた分だけアイコンを下げる） */
@@ -281,6 +283,10 @@ export const SPRING_SFX_MARKER_BIG = {
 export const PLAYER_COIN_AUDIO_ASSET =
   "/orby/assets/audio/sfx/player/piriin.mp3";
 
+/** プレイヤー・1UP 効果音（コイン 100 到達など） */
+export const PLAYER_1UP_AUDIO_ASSET =
+  "/orby/assets/audio/sfx/player/1up.mp3";
+
 /** プレイヤー・ミス時効果音（敵接触・落下死など） */
 export const PLAYER_MISS_AUDIO_ASSET = "/orby/assets/audio/sfx/player/miss.mp3";
 
@@ -342,6 +348,7 @@ export const ASSET_KEYS = {
   PLAYER_JUMP: "playerJump",
   SPRING_SFX: "springSfx",
   PLAYER_COIN: "playerCoin",
+  PLAYER_1UP: "player1up",
   PLAYER_MISS_SFX: "playerMissSfx",
   PLAYER_GOAL: "playerGoal",
   PLAYER_GAMEOVER: "playerGameover",

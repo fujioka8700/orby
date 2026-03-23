@@ -30,3 +30,6 @@ https://pixabay.com/music/upbeat-a-video-game-short-248442/
 
 トランポリン、ジャンプ音
 https://pixabay.com/sound-effects/film-special-effects-boing-bounce-sound-effect-427577/
+
+プレイヤー1UP音
+https://pixabay.com/sound-effects/film-special-effects-awesome-level-up-351714/

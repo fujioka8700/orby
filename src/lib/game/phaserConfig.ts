@@ -6,7 +6,7 @@
 export const DEBUG = true;
 
 /**
- * Arcade Physics のデバッグ描画。
+ * Arcade Physics のデバッグ描画（DEBUG 時のみ有効）。
  * true のとき physics.arcade.debug: true となり、当たり判定などが表示される。
  */
 export const ARCADE_DEBUG = false;
@@ -28,6 +28,20 @@ export const STAGE_NUMBER = 1;
  */
 export type PlayerStartPosition = "Player" | "Player_before_goal";
 export const PLAYER_START_POSITION: PlayerStartPosition = "Player_before_goal";
+
+/**
+ * プレイヤーの初期残機。
+ * DEBUG=true のときだけ値変更が有効になり、DEBUG=false のときは常に 2 に固定する。
+ */
+const PLAYER_INITIAL_LIVES_WHEN_DEBUG = 5;
+export const PLAYER_INITIAL_LIVES = DEBUG ? PLAYER_INITIAL_LIVES_WHEN_DEBUG : 2;
+
+/**
+ * プレイヤーの初期コイン数（残機UIの下に表示される数）。
+ * DEBUG=true のときだけ値が有効、DEBUG=false のときは常に 0 に固定する。
+ */
+export const PLAYER_INITIAL_COINS_WHEN_DEBUG = 99;
+export const PLAYER_INITIAL_COINS = DEBUG ? PLAYER_INITIAL_COINS_WHEN_DEBUG : 0;
 
 /**
  * 背景を画像で表示するか、灰色にするか（DEBUG 時のみ有効）。

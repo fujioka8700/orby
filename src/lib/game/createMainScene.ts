@@ -112,6 +112,7 @@ import {
   BGM_OFF,
   CREATE_A_SINGLE_IMAGE,
   DEBUG,
+  PLAYER_INITIAL_COINS,
   PLAYER_START_POSITION,
   SKIP_TITLE_SCREEN,
   USE_IMAGE_BACKGROUND,
@@ -138,7 +139,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
     private livesCount = LIVES_INITIAL;
     private livesIcon: Phaser.GameObjects.Image | null = null;
     private livesText: Phaser.GameObjects.Text | null = null;
-    private coinCount = 0;
+    private coinCount = PLAYER_INITIAL_COINS;
     private coinsIcon: Phaser.GameObjects.Image | null = null;
     private coinsText: Phaser.GameObjects.Text | null = null;
     private playerStartX: number = GAME_CONSTANTS.PLAYER.DEFAULT_START_X;
@@ -246,7 +247,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       this.resetSceneStateForRestart();
       if (transitionData.livesCount !== undefined) {
         this.livesCount = transitionData.livesCount;
-        this.coinCount = transitionData.coinCount ?? 0;
+        this.coinCount = transitionData.coinCount ?? PLAYER_INITIAL_COINS;
       }
       if (
         shouldSnapBlackOverlayAfterSceneReset(
@@ -435,7 +436,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
 
       this.physics.resume();
       this.livesCount = LIVES_INITIAL;
-      this.coinCount = 0;
+      this.coinCount = PLAYER_INITIAL_COINS;
 
       const cam = this.cameras?.main;
       if (cam) {
@@ -1234,10 +1235,21 @@ export function createMainScene(PhaserLib: typeof Phaser) {
     private setupPlayerCoinOverlap() {
       this.physics.add.overlap(this.player, this.coins, (_player, coin) => {
         (coin as Phaser.GameObjects.GameObject).destroy();
-        this.coinCount++;
-        this.updateCoinsText();
-        this.sound.play(ASSET_KEYS.PLAYER_COIN);
+        this.onPlayerCoinPickup();
       });
+    }
+
+    private onPlayerCoinPickup() {
+      this.coinCount++;
+      if (this.coinCount === 100) {
+        this.coinCount = 0;
+        this.livesCount++;
+        this.updateLivesText();
+        this.blinkLivesText();
+        this.sound.play(ASSET_KEYS.PLAYER_1UP);
+      }
+      this.updateCoinsText();
+      this.sound.play(ASSET_KEYS.PLAYER_COIN);
     }
 
     private setupPlayerGoalOverlap() {
@@ -1747,6 +1759,41 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       if (this.livesText) {
         this.livesText.setText(String(this.livesCount));
       }
+    }
+
+    /** 残機が増えたときに、残機の数字を短く点滅させる */
+    private blinkLivesText() {
+      if (!this.livesText) return;
+      this.tweens.killTweensOf(this.livesText);
+      const blinkYellow = "#ffeb3b";
+      const blinkRed = "#ff3b3b";
+      const defaultColor = UI_NUMBER_TEXT_STYLE.color;
+      const blinkAlpha = 0.2;
+      const blinkDurationMs = 90;
+      const blinkRepeatCount = 3;
+
+      let useRed = false; // onRepeat ごとに切り替えるためのフラグ
+
+      // 点滅中は黄色/赤を交互に切り替える
+      this.livesText.setStyle({ color: blinkYellow });
+      this.livesText.setAlpha(1);
+      this.tweens.add({
+        targets: this.livesText,
+        alpha: blinkAlpha,
+        duration: blinkDurationMs,
+        yoyo: true,
+        repeat: blinkRepeatCount,
+        onRepeat: () => {
+          useRed = !useRed;
+          this.livesText?.setStyle({
+            color: useRed ? blinkRed : blinkYellow,
+          });
+        },
+        onComplete: () => {
+          this.livesText?.setAlpha(1);
+          this.livesText?.setStyle({ color: defaultColor });
+        },
+      });
     }
 
     private updateCoinsText() {

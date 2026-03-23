@@ -6,8 +6,8 @@
     "activeFile": "assets/maps/3rd_stage.tmx",
     "expandedProjectPaths": [
         "assets",
-        "sandbox",
         "assets/maps",
+        "sandbox",
         "."
     ],
     "fileStates": {
@@ -16,6 +16,9 @@
             "scaleInEditor": 1
         },
         "assets/maps/1st_stage.tmx": {
+            "expandedObjectLayers": [
+                3
+            ],
             "scale": 2,
             "selectedLayer": 2,
             "viewCenter": {
@@ -118,11 +121,11 @@
                 7,
                 3
             ],
-            "scale": 1,
+            "scale": 2,
             "selectedLayer": 3,
             "viewCenter": {
-                "x": 2959.5,
-                "y": 195
+                "x": 2993.75,
+                "y": 188
             }
         },
         "assets/maps/3rd_stage.tmx#Brick_Tileset": {
