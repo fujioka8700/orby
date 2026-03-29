@@ -3,12 +3,12 @@
         "height": 4300,
         "width": 2
     },
-    "activeFile": "assets/maps/3rd_stage.tmx",
+    "activeFile": "assets/maps/1st_stage.tmx",
     "expandedProjectPaths": [
-        ".",
+        "assets/maps",
         "sandbox",
-        "assets",
-        "assets/maps"
+        ".",
+        "assets"
     ],
     "fileStates": {
         "": {
@@ -19,11 +19,11 @@
             "expandedObjectLayers": [
                 3
             ],
-            "scale": 4,
+            "scale": 2,
             "selectedLayer": 2,
             "viewCenter": {
-                "x": 128.875,
-                "y": 223.25
+                "x": 238.25,
+                "y": 195.5
             }
         },
         "assets/maps/1st_stage.tmx#Coin": {
@@ -208,9 +208,9 @@
     "project": "orby.tiled-project",
     "property.type": "string",
     "recentFiles": [
-        "assets/maps/1st_stage.tmx",
-        "assets/maps/2nd_stage.tmx",
         "assets/maps/3rd_stage.tmx",
+        "assets/maps/2nd_stage.tmx",
+        "assets/maps/1st_stage.tmx",
         "assets/maps/1st_stage_tilemap.json",
         "assets/maps/Grass_Tileset.tsx",
         "sandbox/SuperMango - コピー.tmx",
