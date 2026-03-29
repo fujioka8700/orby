@@ -6,10 +6,19 @@
 export const DEBUG = false;
 
 /**
- * Arcade Physics のデバッグ描画。
+ * Arcade Physics のデバッグ描画（DEBUG 時のみ有効）。
  * true のとき physics.arcade.debug: true となり、当たり判定などが表示される。
  */
 export const ARCADE_DEBUG = false;
+
+/**
+ * ステージ番号（DEBUG 時のみ有効）。
+ * - 1: 1st ステージ（1st_stage_tilemap.json）
+ * - 2: 2nd ステージ（2nd_stage_tilemap.json）
+ * - 3: 3rd ステージ（3rd_stage_tilemap.json）
+ * DEBUG = false のときは常に 1st ステージを表示する。
+ */
+export const STAGE_NUMBER = 3;
 
 /**
  * プレイヤーの初期位置（DEBUG 時のみ有効）。
@@ -18,7 +27,21 @@ export const ARCADE_DEBUG = false;
  * DEBUG = false のときは常に "Player" が使われる。
  */
 export type PlayerStartPosition = "Player" | "Player_before_goal";
-export const PLAYER_START_POSITION: PlayerStartPosition = "Player_before_goal";
+export const PLAYER_START_POSITION: PlayerStartPosition = "Player";
+
+/**
+ * プレイヤーの初期残機。
+ * DEBUG=true のときだけ値変更が有効になり、DEBUG=false のときは常に 2 に固定する。
+ */
+const PLAYER_INITIAL_LIVES_WHEN_DEBUG = 5;
+export const PLAYER_INITIAL_LIVES = DEBUG ? PLAYER_INITIAL_LIVES_WHEN_DEBUG : 2;
+
+/**
+ * プレイヤーの初期コイン数（残機UIの下に表示される数）。
+ * DEBUG=true のときだけ値が有効、DEBUG=false のときは常に 0 に固定する。
+ */
+export const PLAYER_INITIAL_COINS_WHEN_DEBUG = 99;
+export const PLAYER_INITIAL_COINS = DEBUG ? PLAYER_INITIAL_COINS_WHEN_DEBUG : 0;
 
 /**
  * 背景を画像で表示するか、灰色にするか（DEBUG 時のみ有効）。
@@ -46,17 +69,9 @@ export const CREATE_A_SINGLE_IMAGE = false;
 export const CREATE_A_SINGLE_IMAGE_BACKGROUND = 0x808080;
 
 /**
- * ステージ番号（DEBUG 時のみ有効）。
- * - 1: 1st ステージ（1st_stage_tilemap.json）
- * - 2: 2nd ステージ（2nd_stage_tilemap.json）
- * DEBUG = false のときは常に 1st ステージを表示する。
- */
-export const STAGE_NUMBER = 2;
-
-/**
  * BGM をオフにするか（DEBUG 時のみ有効）。
  * - true: アクションゲーム中の BGM を鳴らさない
  * - false: BGM を鳴らす
  * DEBUG = false のときは常に BGM が有効（鳴る）になる。
  */
-export const BGM_OFF = true;
+export const BGM_OFF = false;

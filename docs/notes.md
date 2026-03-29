@@ -22,6 +22,9 @@ $ docker compose up --build -d
 # サービス'app'の稼働中のコンテナ内でbashシェルを実行
 $ docker compose exec app bash
 
+# すべての未使用または使用中のDockerイメージを削除
+$ docker rmi $(docker images -q)
+
 # Prisma CLIとPrisma Clientをインストール(Version6を使用)
 $ npm install prisma@6 @prisma/client@6
 

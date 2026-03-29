@@ -1,3 +1,5 @@
+import { PLAYER_INITIAL_LIVES } from "@/lib/game/phaserConfig";
+
 export const GAME_WIDTH = 256;
 export const GAME_HEIGHT = 240;
 
@@ -52,6 +54,8 @@ export const GAME_CONSTANTS = {
     INITIAL_DIRECTION: -1,
     SENSOR_DISTANCE: 1,
     FLIP_ADJUST: 4,
+    /** 往復範囲のデフォルト（px）。Tiled の range プロパティ未設定時 */
+    DEFAULT_RANGE: 100,
   },
 } as const;
 
@@ -72,12 +76,56 @@ export const GOAL_FLAG_ASSET = "/orby/assets/graphics/items/Flag_animation.png";
 export const GOAL_FLAG_SIZE = 32;
 export const GOAL_FLAG_FRAMES = 5;
 
+/** バウンスパッド（Bouncepad_Red）：48x48px、3コマ。2コマ目をマップに表示 */
+export const BOUNCEPAD_RED_ASSET =
+  "/orby/assets/graphics/environment/interactive/Bouncepad_Red.png";
+export const BOUNCEPAD_RED_SIZE = 48;
+export const BOUNCEPAD_RED_FRAMES = 3;
+/** マップ表示用フレーム（0-indexed）。2コマ目 = 1 */
+export const BOUNCEPAD_RED_DISPLAY_FRAME = 1;
+export const BOUNCEPAD_RED_OBJECT_NAME = "Bouncepad_Red";
+/** 2nd ステージタイルマップの Bouncepad_Red タイルセット firstgid */
+export const BOUNCEPAD_RED_FIRST_GID = 18;
+/** トランポリン（bounce）アニメのキー */
+export const BOUNCEPAD_ANIM_KEY = "bouncepad-bounce";
+/** トランポリンで跳ねたときの上方向初速度（通常ジャンプより強く） */
+export const BOUNCEPAD_BOUNCE_VELOCITY = -320;
+/** 着地寸前にジャンプボタンを押したときの大ジャンプ用初速度 */
+export const BOUNCEPAD_SUPER_BOUNCE_VELOCITY = -440;
+/** 着地「寸前」とみなす、空中でジャンプを押してから着地までの許容時間（ms） */
+export const BOUNCEPAD_SUPER_JUMP_WINDOW_MS = 100;
+/** トランポリン物理ボディのサイズ・オフセット（px） */
+export const BOUNCEPAD_BODY_SIZE = 16;
+export const BOUNCEPAD_BODY_OFFSET = 16;
+/** 「パッドの上に立っている」判定：足元の縦の許容（上方向・下方向のずれ px） */
+export const BOUNCEPAD_STANDING_VERTICAL_MARGIN_TOP = 8;
+export const BOUNCEPAD_STANDING_VERTICAL_MARGIN_BOTTOM = 24;
+/** 「パッドの上に立っている」判定：左右の許容（px） */
+export const BOUNCEPAD_STANDING_HORIZONTAL_MARGIN = 8;
+/** 足元の platform タイル判定で使う、下方向の余裕（px） */
+export const PLATFORM_FEET_CHECK_OFFSET = 2;
+
+/** 描画深度：バウンスパッド */
+export const DEPTH_BOUNCEPAD = 100;
+/** 描画深度：プレイヤー・敵（Bouncepad より上に表示） */
+export const DEPTH_PLAYER_AND_ENEMY = 101;
+/**
+ * 3rd ステージの動く床。敵（DEPTH_PLAYER_AND_ENEMY）より手前に描画する。
+ */
+export const DEPTH_MOVING_PLATFORM_STAGE3 = 102;
+/**
+ * 3rd ステージのプレイヤー。動く床より手前に描画する（床に乗ったときに隠れないようにする）。
+ */
+export const DEPTH_PLAYER_STAGE3 = 103;
+/** 描画深度：3rd ステージのレール（ノコギリより下に表示） */
+export const DEPTH_RAILS = 99;
+
 /** コイン：16x16px */
 export const COIN_ASSET = "/orby/assets/graphics/items/Coin.png";
 export const COIN_SIZE = 16;
 
 /** 残機UI */
-export const LIVES_INITIAL = 2;
+export const LIVES_INITIAL = PLAYER_INITIAL_LIVES;
 export const UI_LIVES_POSITION = { x: 16, y: 16 } as const;
 export const UI_LIVES_ICON_SIZE = 16;
 /** 残機・コインアイコンの下方向オフセット（数値とトップを揃えた分だけアイコンを下げる） */
@@ -171,10 +219,23 @@ export const TITLE_COPYRIGHT_OFFSET_Y = 30;
 
 /** タイルマップのオブジェクトレイヤー名・オブジェクト名（Tiled と一致させる） */
 export const OBJECT_LAYER_NAME = "objectsLayer";
+/** 2nd/3rd ステージの動く床オブジェクトを置くレイヤー名（方法A: 16pxタイルを3枚ずつ Physics Group で制御） */
+export const MOVING_PLATFORMS_LAYER_NAME = "movingPlatforms";
+/** 2nd ステージのコインを置くオブジェクトレイヤー名（タイルオブジェクトで配置） */
+export const COINS_LAYER_NAME = "Coins";
+/** 2nd/3rd ステージの敵を置くオブジェクトレイヤー名（Bird_1 / Spider_1 のタイルオブジェクトで配置） */
+export const ENEMIES_LAYER_NAME = "Enemies";
+/** 2nd ステージタイルマップの Bird_1 タイルセット firstgid（参照用。実行時は `tiledTilesetGid` で解決する） */
+export const BIRD_1_FIRST_GID = 15;
+/** 2nd ステージタイルマップの Spider_1 タイルセット firstgid */
+export const SPIDER_FIRST_GID = 25;
 export const GOAL_FLAG_OBJECT_NAMES = ["Goal_flag", "goal_flag"] as const;
 export const COIN_OBJECT_NAME = "Coin";
 export const ENEMY_OBJECT_NAME = "Spider_1";
-export const ENEMY_OBJECT_NAMES = [ENEMY_OBJECT_NAME, BIRD_1_OBJECT_NAME] as const;
+export const ENEMY_OBJECT_NAMES = [
+  ENEMY_OBJECT_NAME,
+  BIRD_1_OBJECT_NAME,
+] as const;
 
 /** メインシーン・ゲーム背景色 */
 export const SCENE_BACKGROUND_COLOR = "#2c3e50";
@@ -193,25 +254,52 @@ export const BACKGROUND_SKY_1_ASSET =
 export const BACKGROUND_SKY_2_ASSET =
   "/orby/assets/graphics/backgrounds/Sky_Background_2.png";
 
+/** 3rd ステージ用背景 */
+export const BACKGROUND_CASTLE_1_ASSET =
+  "/orby/assets/graphics/backgrounds/Castle_Background_1.png";
+/** 3rd ステージ：城背景画像の高さ（px） */
+export const CASTLE_BG_HEIGHT = 213;
+/** 3rd ステージ：城背景の上端オフセット（キャンバス上端からの px） */
+export const CASTLE_BG_TOP_OFFSET = 27;
+/** 3rd ステージ：上端バー（城背景より上）の色（0xRRGGBB） */
+export const CASTLE_BG_TOP_BAR_COLOR = 0x1a1932;
+
 /** ゲームクリア画面用画像（CREATE_A_SINGLE_IMAGE 時の仮表示） */
 export const PLAYER_GAME_COMPLETE_ASSET =
   "/orby/assets/graphics/characters/Player_game_complete.png";
 
 /** プレイヤー・ジャンプ効果音 */
-export const PLAYER_JUMP_AUDIO_ASSET =
-  "/orby/assets/audio/sfx/player/jump.mp3";
+export const PLAYER_JUMP_AUDIO_ASSET = "/orby/assets/audio/sfx/player/jump.mp3";
+
+/** バウンスパッド（トランポリン）接触時効果音 */
+export const SPRING_AUDIO_ASSET =
+  "/orby/assets/audio/sfx/player/spring.mp3";
+/** Spring SE マーカー：通常ジャンプ（0秒付近） */
+export const SPRING_SFX_MARKER_NORMAL = {
+  name: "normal",
+  start: 0,
+  duration: 1,
+} as const;
+/** Spring SE マーカー：大ジャンプ（6.5秒付近） */
+export const SPRING_SFX_MARKER_BIG = {
+  name: "big",
+  start: 6.5,
+  duration: 1,
+} as const;
 
 /** プレイヤー・コイン取得効果音 */
 export const PLAYER_COIN_AUDIO_ASSET =
   "/orby/assets/audio/sfx/player/piriin.mp3";
 
+/** プレイヤー・1UP 効果音（コイン 100 到達など） */
+export const PLAYER_1UP_AUDIO_ASSET =
+  "/orby/assets/audio/sfx/player/1up.mp3";
+
 /** プレイヤー・ミス時効果音（敵接触・落下死など） */
-export const PLAYER_MISS_AUDIO_ASSET =
-  "/orby/assets/audio/sfx/player/miss.mp3";
+export const PLAYER_MISS_AUDIO_ASSET = "/orby/assets/audio/sfx/player/miss.mp3";
 
 /** プレイヤー・ゴール時効果音 */
-export const PLAYER_GOAL_AUDIO_ASSET =
-  "/orby/assets/audio/sfx/player/goal.mp3";
+export const PLAYER_GOAL_AUDIO_ASSET = "/orby/assets/audio/sfx/player/goal.mp3";
 /** ゴール音を止めて次の画面へ遷移するまでの「終了の何秒前」か（秒） */
 export const GOAL_SOUND_STOP_BEFORE_END_SEC = 1.5;
 
@@ -220,12 +308,10 @@ export const PLAYER_GAMEOVER_AUDIO_ASSET =
   "/orby/assets/audio/sfx/player/gameover.mp3";
 
 /** ステージ1（アクションゲーム）BGM */
-export const BGM_STAGE1_AUDIO_ASSET =
-  "/orby/assets/audio/bgm/stage1.mp3";
+export const BGM_STAGE1_AUDIO_ASSET = "/orby/assets/audio/bgm/stage1.mp3";
 
 /** ゲームクリア画面BGM */
-export const BGM_GAMECLEAR_AUDIO_ASSET =
-  "/orby/assets/audio/bgm/gameclear.mp3";
+export const BGM_GAMECLEAR_AUDIO_ASSET = "/orby/assets/audio/bgm/gameclear.mp3";
 
 /** タイトル画面タッチ時（ゲームスタート）効果音 */
 export const SFX_GAMESTART_AUDIO_ASSET =
@@ -239,17 +325,29 @@ export const ASSET_KEYS = {
   PLAYER: "player",
   SPIDER: "spider",
   BIRD_1: "bird1",
+  BOUNCEPAD_RED: "bouncepadRed",
   GOAL_FLAG: "goalFlag",
   BACKGROUND: "background",
   BACKGROUND_SKY_0: "backgroundSky0",
   BACKGROUND_SKY_1: "backgroundSky1",
   BACKGROUND_SKY_2: "backgroundSky2",
+  BACKGROUND_CASTLE_1: "backgroundCastle1",
   TILESET_GRASS: "tilesetGrass",
   TILESET_PLATFORM: "tilesetPlatform",
   TILESET_GRASS_ONEWAY: "tilesetGrassOneway",
   TILESET_LEAF: "tilesetLeaf",
   TILESET_GRASS_ROCK: "tilesetGrassRock",
   TILESET_CLOUD: "tilesetCloud",
+  TILESET_BRICK: "tilesetBrick",
+  TILESET_LAVA: "tilesetLava",
+  TILESET_STONE: "tilesetStone",
+  /** 画面下部の波打ち溶岩用（同一画像を spritesheet として二重登録） */
+  LAVA_FLOOR: "lavaFloor",
+  CIRCULAR_SAW: "circularSaw",
+  /** 3rd：溶岩から飛び出す Podoboo 風エネミー（Flame_1.png） */
+  FLAME_1: "flame1",
+  SPIKE_BLOCK: "spikeBlock",
+  RAILS: "rails",
   COIN: "coin",
   COINS_UI: "coinsUi",
   LIVES_ICON: "livesIcon",
@@ -257,7 +355,9 @@ export const ASSET_KEYS = {
   TITLE: "title",
   PLAYER_GAME_COMPLETE: "playerGameComplete",
   PLAYER_JUMP: "playerJump",
+  SPRING_SFX: "springSfx",
   PLAYER_COIN: "playerCoin",
+  PLAYER_1UP: "player1up",
   PLAYER_MISS_SFX: "playerMissSfx",
   PLAYER_GOAL: "playerGoal",
   PLAYER_GAMEOVER: "playerGameover",
@@ -274,8 +374,134 @@ export const TILEMAP_ASSETS = {
   tilesetLeaf: "/orby/assets/graphics/environment/tilesets/Leaf_Tileset.png",
   tilesetGrassRock:
     "/orby/assets/graphics/environment/tilesets/Grass_Rock_Tileset.png",
-  tilesetCloud:
-    "/orby/assets/graphics/environment/tilesets/Cloud_Tileset.png",
+  tilesetCloud: "/orby/assets/graphics/environment/tilesets/Cloud_Tileset.png",
   tilemap: "/orby/assets/maps/1st_stage_tilemap.json",
   tilemap2nd: "/orby/assets/maps/2nd_stage_tilemap.json",
+  tilemap3rd: "/orby/assets/maps/3rd_stage_tilemap.json",
+  tilesetBrick: "/orby/assets/graphics/environment/tilesets/Brick_Tileset.png",
+  tilesetLava: "/orby/assets/graphics/backgrounds/Lava.png",
+  tilesetStone: "/orby/assets/graphics/environment/tilesets/Stone_Tileset.png",
 } as const;
+
+/** Platform.png スプライトシート用（タイルマップの Platform タイルセット読み込み用） */
+export const PLATFORM_FRAME_WIDTH = 16;
+export const PLATFORM_FRAME_HEIGHT = 16;
+/** 2nd ステージタイルマップの Platform タイルセット firstgid（参照用。動く床の gid は `movingPlatforms` 内で実行時解決） */
+export const PLATFORM_FIRST_GID = 21;
+/** 2nd/3rd ステージの動く床：Y 軸オフセット（px）。Tiled 配置位置からの調整 */
+export const MOVING_PLATFORM_OFFSET_Y = -16;
+/** 動く床のデフォルト速度（px/秒）。Tiled の speed プロパティ未設定時 */
+export const MOVING_PLATFORM_DEFAULT_SPEED = 100;
+/** 動く床のデフォルト往復距離（px）。Tiled の distance プロパティ未設定時 */
+export const MOVING_PLATFORM_DEFAULT_DISTANCE = 150;
+
+/** 3rd ステージ：トゲトラップ用オブジェクトレイヤー名（Tiled で type: spike を付与） */
+export const TRAPS_LAYER_NAME = "traps";
+/** Tiled オブジェクトの type（小文字比較）でトゲとみなす */
+export const SPIKE_OBJECT_TYPE = "spike";
+/**
+ * 3rd_stage_tilemap.json の Spike タイルセットの firstgid・タイル数。
+ * タイルオブジェクトはオブジェクトの type が空でも gid でトゲと判定する。
+ */
+export const SPIKE_TILE_FIRST_GID = 36;
+export const SPIKE_TILE_GID_COUNT = 1;
+/** Spike.png（16×16）の既定表示サイズ（px） */
+export const SPIKE_BLOCK_DISPLAY_SIZE = 16;
+/** トゲの当たり（見た目より小さめ）。スプライト左上基準のオフセット */
+export const SPIKE_BODY_WIDTH = 10;
+export const SPIKE_BODY_HEIGHT = 10;
+export const SPIKE_BODY_OFFSET_X = 3;
+export const SPIKE_BODY_OFFSET_Y = 6;
+/** 描画深度（足場より手前、プレイヤーより奥） */
+export const DEPTH_SPIKE = 55;
+/** 3rd：トゲ画像 */
+export const SPIKE_BLOCK_ASSET =
+  "/orby/assets/graphics/environment/hazards/Spike.png";
+
+/** 3rd ステージ：ノコギリの軌道を定義するオブジェクトレイヤー名（Tiled の Polyline） */
+export const SAW_PATH_LAYER_NAME = "sawPath";
+/** 3rd ステージ：ノコギリ画像（Circular_Saw.png） */
+export const CIRCULAR_SAW_ASSET =
+  "/orby/assets/graphics/environment/hazards/Circular_Saw.png";
+/** ノコギリがパスを1往復する時間（ms） */
+export const SAW_FOLLOW_DURATION_MS = 3000;
+/** ノコギリの見た目回転速度（度/フレーム） */
+export const SAW_ROTATION_SPEED = 8;
+
+/** 3rd ステージ：レール画像（Rails.png）ノコギリの通り道表示用。3rd_stage_tilemap.json の Rails タイルセットに合わせる。 */
+export const RAILS_ASSET =
+  "/orby/assets/graphics/environment/interactive/Rails.png";
+/** Rails.png 1タイルの幅・高さ（px）。タイルマップと同一（64x64 を 4x4 で 16x16）。 */
+export const RAILS_TILE_SIZE = 16;
+/** 3rd ステージタイルマップの Rails タイルセット firstgid（gid - RAILS_FIRST_GID = スプライトフレーム番号）。 */
+export const RAILS_FIRST_GID = 18;
+/** Rails タイルセットのタイル数（4x4=16）。gid 有効範囲の判定に使用。 */
+export const RAILS_TILE_COUNT = 16;
+
+/** Lava.png（384×64）を横 8 コマのスプライトシートとして扱うときの 1 フレームサイズ */
+export const LAVA_FLOOR_FRAME_WIDTH = 48;
+export const LAVA_FLOOR_FRAME_HEIGHT = 64;
+export const LAVA_FLOOR_FRAME_COUNT = 8;
+/** 各フレームの左右をこの px ずつ切り捨て、タイル繰り返しの単位幅を狭める */
+export const LAVA_FLOOR_TRIM_LEFT = 16;
+export const LAVA_FLOOR_TRIM_RIGHT = 16;
+/** トリミング後の 1 コマの幅（TileSprite の横リピート単位） */
+export const LAVA_FLOOR_CROP_WIDTH =
+  LAVA_FLOOR_FRAME_WIDTH - LAVA_FLOOR_TRIM_LEFT - LAVA_FLOOR_TRIM_RIGHT;
+/**
+ * 左右トリミング後の各フレームを Canvas に焼き付けて登録するテクスチャキー接頭辞。
+ * TileSprite の setCrop は横タイルと相性が悪いため、この画像でリピートする。
+ */
+export const LAVA_FLOOR_TRIMMED_TEXTURE_PREFIX = "lavaFloorTrimmedFrame";
+/** 画面下端からのオフセット（px）。溶岩 TileSprite の下端（origin 1）の位置。 */
+export const LAVA_FLOOR_BOTTOM_MARGIN = 16;
+/** 上記に加える画面 Y 方向オフセット（px）。正の値で下に移動。 */
+export const LAVA_FLOOR_SCREEN_OFFSET_Y = 48;
+/** スプライト上端からこの高さ（px）は当たり判定なし（見た目のみの余白）。 */
+export const LAVA_FLOOR_COLLISION_INSET_TOP = 20;
+/** 溶岩タイルの横スクロール量（px/フレーム）。波の見た目用。 */
+/** 0 で横方向の流れなし（コマアニメのみ） */
+export const LAVA_FLOOR_TILE_SCROLL_SPEED = 0;
+/** 溶岩レイヤーの描画深度（足場 0 より手前、プレイヤー 101 より奥） */
+export const DEPTH_LAVA_FLOOR = 10;
+/** 画面下部溶岩 TileSprite のコマ送り（fps）。TileSprite は anims.play 非対応のため手動 setFrame で使用 */
+export const LAVA_FLOOR_FRAME_RATE = 10;
+
+/** Flame_1.png（96×48）：3rd タイルマップの Flame_1 タイルセットと同一（48×48・2コマ） */
+export const FLAME_1_ASSET =
+  "/orby/assets/graphics/enemies/Flame_1.png";
+export const FLAME_1_FRAME_WIDTH = 48;
+export const FLAME_1_FRAME_HEIGHT = 48;
+export const FLAME_1_FRAME_COUNT = 2;
+/** 3rd_stage_tilemap.json の Flame_1 タイルセット firstgid */
+export const FLAME_1_FIRST_GID = 34;
+/** Tiled オブジェクトの type で Podoboo を置くときの識別子（objectsLayer のポイント等） */
+export const PODOBOO_OBJECT_TYPE = "flame";
+/** Phaser アニメーションキー（animations.ts で登録） */
+export const PODOBOO_ANIM_KEY = "flame-podoboo-burn";
+/**
+ * Tiled の range（タイル未設定時の既定）＝噴出口からの到達高さ（px）。
+ * 初速は Arcade 重力から vy = -sqrt(2 * g * range) で算出する。
+ */
+export const PODOBOO_DEFAULT_RANGE = 100;
+/** Tiled の speed（タイル未設定時の既定）。大きいほど噴出の間隔が短い */
+export const PODOBOO_DEFAULT_SPEED = 50;
+/** speed がこの値のとき PODOBOO_REF_INTERVAL_MS を基準間隔とする */
+export const PODOBOO_REF_SPEED_FOR_INTERVAL = 50;
+/** PODOBOO_REF_SPEED_FOR_INTERVAL のときの待機時間（ms） */
+export const PODOBOO_REF_INTERVAL_MS = 3000;
+/** range のクランプ（px） */
+export const PODOBOO_RANGE_MIN_PX = 4;
+export const PODOBOO_RANGE_MAX_PX = 360;
+/** 待機～次ジャンプまでの間隔クランプ（ms）。speed から算出後に適用 */
+export const PODOBOO_INTERVAL_MIN_MS = 600;
+export const PODOBOO_INTERVAL_MAX_MS = 8000;
+/** 待機時：噴出口より下に沈める量（px）。見えない位置 */
+export const PODOBOO_HIDE_OFFSET_Y = 56;
+/** 描画深度。溶岩帯（DEPTH_LAVA_FLOOR）より奥＝溶岩の下のレイヤー。足場 0 より手前 */
+export const DEPTH_PODOBOO = 6;
+/** 当たり（スプライト左上基準のオフセットとサイズ） */
+export const PODOBOO_BODY_WIDTH = 12;
+export const PODOBOO_BODY_HEIGHT = 14;
+export const PODOBOO_BODY_OFFSET_X = 18;
+export const PODOBOO_BODY_OFFSET_Y = 18;

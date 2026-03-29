@@ -4,6 +4,8 @@ import {
   BACKGROUND_ASSET,
   BIRD_1_ASSET,
   BIRD_1_FRAME_SIZE,
+  BOUNCEPAD_RED_ASSET,
+  BOUNCEPAD_RED_SIZE,
   BGM_GAMECLEAR_AUDIO_ASSET,
   BGM_STAGE1_AUDIO_ASSET,
   SFX_GAMESTART_AUDIO_ASSET,
@@ -12,38 +14,51 @@ import {
   GAME_CONSTANTS,
   GOAL_FLAG_ASSET,
   GOAL_FLAG_SIZE,
+  LAVA_FLOOR_FRAME_HEIGHT,
+  LAVA_FLOOR_FRAME_WIDTH,
   LIVES_ICON_ASSET,
   LIVES_ICON_FRAME_HEIGHT,
   LIVES_ICON_FRAME_WIDTH,
   PLAYER_ASSET,
   PLAYER_COIN_AUDIO_ASSET,
+  PLAYER_1UP_AUDIO_ASSET,
   PLAYER_GAME_COMPLETE_ASSET,
   PLAYER_JUMP_AUDIO_ASSET,
+  SPRING_AUDIO_ASSET,
   PLAYER_GAMEOVER_AUDIO_ASSET,
   PLAYER_GOAL_AUDIO_ASSET,
   PLAYER_MISS_ASSET,
   PLAYER_MISS_AUDIO_ASSET,
+  PLATFORM_FRAME_HEIGHT,
+  PLATFORM_FRAME_WIDTH,
   SPIDER_ASSET,
+  BACKGROUND_CASTLE_1_ASSET,
+  CIRCULAR_SAW_ASSET,
+  FLAME_1_ASSET,
+  SPIKE_BLOCK_ASSET,
+  FLAME_1_FRAME_HEIGHT,
+  FLAME_1_FRAME_WIDTH,
+  RAILS_ASSET,
+  RAILS_TILE_SIZE,
   BACKGROUND_SKY_0_ASSET,
   BACKGROUND_SKY_1_ASSET,
   BACKGROUND_SKY_2_ASSET,
   TILEMAP_ASSETS,
   TITLE_ASSET,
 } from "@/lib/game/constants";
-import { DEBUG, STAGE_NUMBER } from "@/lib/game/phaserConfig";
-
-/** 使用するステージ番号（DEBUG 時のみ STAGE_NUMBER、そうでないときは 1） */
-function getEffectiveStageNumber(): 1 | 2 {
-  return DEBUG ? (STAGE_NUMBER === 2 ? 2 : 1) : 1;
-}
+import { getRuntimeStageNumber } from "@/lib/game/stageRuntime";
 
 /** メインシーン用アセットをすべてプリロードする */
 export function loadGameAssets(scene: Phaser.Scene): void {
   const { load } = scene;
   load.image(ASSET_KEYS.TILESET_GRASS, TILEMAP_ASSETS.tilesetGrass);
-  load.image(
+  load.spritesheet(
     ASSET_KEYS.TILESET_PLATFORM,
     TILEMAP_ASSETS.tilesetPlatform,
+    {
+      frameWidth: PLATFORM_FRAME_WIDTH,
+      frameHeight: PLATFORM_FRAME_HEIGHT,
+    },
   );
   load.image(
     ASSET_KEYS.TILESET_GRASS_ONEWAY,
@@ -55,11 +70,46 @@ export function loadGameAssets(scene: Phaser.Scene): void {
     TILEMAP_ASSETS.tilesetGrassRock,
   );
   load.image(ASSET_KEYS.TILESET_CLOUD, TILEMAP_ASSETS.tilesetCloud);
+  const stageNumber = getRuntimeStageNumber(scene);
   const tilemapUrl =
-    getEffectiveStageNumber() === 2
-      ? TILEMAP_ASSETS.tilemap2nd
-      : TILEMAP_ASSETS.tilemap;
-  load.tilemapTiledJSON(ASSET_KEYS.TILEMAP, tilemapUrl);
+    stageNumber === 3
+      ? TILEMAP_ASSETS.tilemap3rd
+      : stageNumber === 2
+        ? TILEMAP_ASSETS.tilemap2nd
+        : TILEMAP_ASSETS.tilemap;
+  const tilemapKey = ASSET_KEYS.TILEMAP;
+  const tilemapCache = scene.cache.tilemap;
+  if (tilemapCache.exists(tilemapKey)) {
+    tilemapCache.remove(tilemapKey);
+  }
+  load.tilemapTiledJSON(tilemapKey, tilemapUrl);
+  if (stageNumber === 2 || stageNumber === 3) {
+    load.spritesheet(ASSET_KEYS.BOUNCEPAD_RED, BOUNCEPAD_RED_ASSET, {
+      frameWidth: BOUNCEPAD_RED_SIZE,
+      frameHeight: BOUNCEPAD_RED_SIZE,
+    });
+    load.audio(ASSET_KEYS.SPRING_SFX, SPRING_AUDIO_ASSET);
+  }
+  if (stageNumber === 3) {
+    load.image(ASSET_KEYS.TILESET_BRICK, TILEMAP_ASSETS.tilesetBrick);
+    load.image(ASSET_KEYS.TILESET_LAVA, TILEMAP_ASSETS.tilesetLava);
+    load.image(ASSET_KEYS.TILESET_STONE, TILEMAP_ASSETS.tilesetStone);
+    load.spritesheet(ASSET_KEYS.LAVA_FLOOR, TILEMAP_ASSETS.tilesetLava, {
+      frameWidth: LAVA_FLOOR_FRAME_WIDTH,
+      frameHeight: LAVA_FLOOR_FRAME_HEIGHT,
+    });
+    load.image(ASSET_KEYS.BACKGROUND_CASTLE_1, BACKGROUND_CASTLE_1_ASSET);
+    load.image(ASSET_KEYS.CIRCULAR_SAW, CIRCULAR_SAW_ASSET);
+    load.spritesheet(ASSET_KEYS.RAILS, RAILS_ASSET, {
+      frameWidth: RAILS_TILE_SIZE,
+      frameHeight: RAILS_TILE_SIZE,
+    });
+    load.spritesheet(ASSET_KEYS.FLAME_1, FLAME_1_ASSET, {
+      frameWidth: FLAME_1_FRAME_WIDTH,
+      frameHeight: FLAME_1_FRAME_HEIGHT,
+    });
+    load.image(ASSET_KEYS.SPIKE_BLOCK, SPIKE_BLOCK_ASSET);
+  }
   load.spritesheet(ASSET_KEYS.PLAYER, PLAYER_ASSET, {
     frameWidth: GAME_CONSTANTS.PLAYER.FRAME_WIDTH,
     frameHeight: GAME_CONSTANTS.PLAYER.FRAME_HEIGHT,
@@ -91,6 +141,7 @@ export function loadGameAssets(scene: Phaser.Scene): void {
   load.image(ASSET_KEYS.PLAYER_GAME_COMPLETE, PLAYER_GAME_COMPLETE_ASSET);
   load.audio(ASSET_KEYS.PLAYER_JUMP, PLAYER_JUMP_AUDIO_ASSET);
   load.audio(ASSET_KEYS.PLAYER_COIN, PLAYER_COIN_AUDIO_ASSET);
+  load.audio(ASSET_KEYS.PLAYER_1UP, PLAYER_1UP_AUDIO_ASSET);
   load.audio(ASSET_KEYS.PLAYER_MISS_SFX, PLAYER_MISS_AUDIO_ASSET);
   load.audio(ASSET_KEYS.PLAYER_GOAL, PLAYER_GOAL_AUDIO_ASSET);
   load.audio(ASSET_KEYS.PLAYER_GAMEOVER, PLAYER_GAMEOVER_AUDIO_ASSET);

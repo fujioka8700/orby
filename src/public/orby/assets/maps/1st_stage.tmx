@@ -180,7 +180,7 @@
 </data>
  </layer>
  <objectgroup id="3" name="objectsLayer">
-  <object id="1" name="Player" x="39.3676" y="220.126">
+  <object id="1" name="Player" x="39.8676" y="215.876">
    <point/>
   </object>
   <object id="3" name="Player_before_goal" x="2967.33" y="220">

@@ -1,5 +1,10 @@
 /// <reference types="phaser" />
-import { ASSET_KEYS, GOAL_FLAG_FRAMES } from "@/lib/game/constants";
+import {
+  ASSET_KEYS,
+  FLAME_1_FRAME_COUNT,
+  GOAL_FLAG_FRAMES,
+  PODOBOO_ANIM_KEY,
+} from "@/lib/game/constants";
 
 /** プレイヤー・敵のアニメーションを登録する */
 export function createGameAnimations(scene: Phaser.Scene): void {
@@ -54,6 +59,21 @@ export function createGameAnimations(scene: Phaser.Scene): void {
     frames: scene.anims.generateFrameNumbers(ASSET_KEYS.GOAL_FLAG, {
       start: 0,
       end: GOAL_FLAG_FRAMES - 1,
+    }),
+    frameRate: 8,
+    repeat: -1,
+  });
+}
+
+/** 3rd ステージ：Flame_1（Podoboo）のループアニメ */
+export function createFlamePodobooAnimation(scene: Phaser.Scene): void {
+  if (!scene.textures.exists(ASSET_KEYS.FLAME_1)) return;
+  if (scene.anims.exists(PODOBOO_ANIM_KEY)) return;
+  scene.anims.create({
+    key: PODOBOO_ANIM_KEY,
+    frames: scene.anims.generateFrameNumbers(ASSET_KEYS.FLAME_1, {
+      start: 0,
+      end: FLAME_1_FRAME_COUNT - 1,
     }),
     frameRate: 8,
     repeat: -1,
