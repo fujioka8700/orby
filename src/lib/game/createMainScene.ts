@@ -44,10 +44,7 @@ import {
   MOVING_PLATFORMS_LAYER_NAME,
   OBJECT_LAYER_NAME,
   PLATFORM_FEET_CHECK_OFFSET,
-  BIRD_1_FIRST_GID,
-  PLATFORM_FIRST_GID,
   SAW_ROTATION_SPEED,
-  SPIDER_FIRST_GID,
   PLAYER_GAME_COMPLETE_ASSET,
   PLAYER_MISS_ASSET,
   SCENE_BACKGROUND_COLOR,
@@ -59,7 +56,9 @@ import {
   UI_NUMBER_TEXT_STYLE,
   DEPTH_BOUNCEPAD,
   DEPTH_LAVA_FLOOR,
+  DEPTH_MOVING_PLATFORM_STAGE3,
   DEPTH_PLAYER_AND_ENEMY,
+  DEPTH_PLAYER_STAGE3,
   LAVA_FLOOR_BOTTOM_MARGIN,
   LAVA_FLOOR_COLLISION_INSET_TOP,
   LAVA_FLOOR_SCREEN_OFFSET_Y,
@@ -72,6 +71,10 @@ import {
 } from "@/lib/game/constants";
 import { updateEnemies as updateEnemiesAI } from "@/lib/game/enemyAI";
 import {
+  getTilesetGidRange,
+  isGidInTilesetRange,
+} from "@/lib/game/tiledTilesetGid";
+import {
   createMovingPlatforms,
   isMovingPlatformOneWayCollision,
   resetMovingPlatforms as resetMovingPlatformsModule,
@@ -80,6 +83,7 @@ import {
 import {
   createSawFollowers,
   placeRailsFromLayer,
+  resetSawFollowersToStart,
 } from "@/lib/game/sawTraps";
 import { createGameClearScreen } from "@/lib/game/gameClearUI";
 import { getGameContainer, removeResumeListeners } from "@/lib/game/domUtils";
@@ -308,6 +312,8 @@ export function createMainScene(PhaserLib: typeof Phaser) {
             GAME_CONSTANTS.CAMERA.FADE_DURATION_MS,
           );
         }
+        /** タイトル表示中は Arcade 物理が進むと敵・動く床などがずれるため停止する（ノコギリは Tween なので別途リセット）。 */
+        this.physics.pause();
       } else if (
         this.getEffectiveStageNumber() === 2 ||
         this.getEffectiveStageNumber() === 3
@@ -315,8 +321,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
         /** タイトル→1面・2・3 とも `FADE_DURATION_MS` に統一 */
         this.fadeInThenEnableGameplay(GAME_CONSTANTS.CAMERA.FADE_DURATION_MS);
       } else {
-        this.gameStarted = true;
-        this.startGameBGM();
+        this.enterPlayableState(false);
       }
     }
 
@@ -511,7 +516,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
     }
 
     /**
-     * タイトル→1面・1→2→3 面のいずれも同じ手順: カメラを `fadeIn` し、完了後に `gameStarted` と BGM。
+     * タイトル→1面・1→2→3 面のいずれも同じ手順: カメラを `fadeIn` し、完了後にプレイ可能状態へ。
      * （Phaser の `resetFX` は呼ばない。タイトル遷移と同一）
      */
     private fadeInThenEnableGameplay(fadeDurationMs: number) {
@@ -519,9 +524,31 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       cam.fadeIn(fadeDurationMs, 0, 0, 0);
       cam.once(Phaser.Cameras.Scene2D.Events.FADE_IN_COMPLETE, () => {
         this.releasePreloadCanvasBlackHoldStyle();
-        this.gameStarted = true;
-        this.startGameBGM();
+        this.enterPlayableState(true);
       });
+    }
+
+    /**
+     * 操作可能にする共通処理。`afterTitlePhysicsPause` が true のときはタイトル中に止めた物理を再開し、
+     * pause 中は動かなかった collider 分のプレイヤー接地を `resolveSpawnOverlapWithPlatforms` で揃える。
+     */
+    private enterPlayableState(afterTitlePhysicsPause: boolean) {
+      if (afterTitlePhysicsPause) {
+        this.physics.resume();
+      }
+      this.resetDynamicEntitiesForGameStart();
+      if (afterTitlePhysicsPause) {
+        this.resolveSpawnOverlapWithPlatforms();
+      }
+      this.gameStarted = true;
+      this.startGameBGM();
+    }
+
+    /** タイトル経過やフェード待ちでずれた敵・トラップを初期状態へ（ゲーム開始直前に呼ぶ）。 */
+    private resetDynamicEntitiesForGameStart() {
+      this.resetEnemiesToStartPositions();
+      this.resetMovingPlatforms();
+      resetSawFollowersToStart(this.circularSaws);
     }
 
     /** GAME OVER から戻った直後: タイトルを黒から `FADE_DURATION_MS` でフェードイン（ゲーム開始はタッチ後） */
@@ -579,19 +606,23 @@ export function createMainScene(PhaserLib: typeof Phaser) {
         }
       });
 
-      if (this.getEffectiveStageNumber() === 2) {
+      const stageForMovingPlatforms = this.getEffectiveStageNumber();
+      if (stageForMovingPlatforms === 2 || stageForMovingPlatforms === 3) {
         this.setupMovingPlatforms();
       }
     }
 
-    /** 2nd ステージ: MovingPlatforms レイヤーから動く床を生成する（方法A）。 */
+    /** 2nd/3rd ステージ: MovingPlatforms レイヤーから動く床を生成する（方法A）。 */
     private setupMovingPlatforms() {
+      const stage = this.getEffectiveStageNumber();
+      const movingPlatformDepth =
+        stage === 3 ? DEPTH_MOVING_PLATFORM_STAGE3 : 0;
       this.movingPlatforms = createMovingPlatforms(
         this,
         this.map,
         MOVING_PLATFORMS_LAYER_NAME,
-        PLATFORM_FIRST_GID,
         this.getTiledPropertyNumber.bind(this),
+        movingPlatformDepth,
       );
     }
 
@@ -961,28 +992,18 @@ export function createMainScene(PhaserLib: typeof Phaser) {
 
     /** gid のタイル定義からプロパティを取得（タイルセットのタイルに設定した値） */
     private getTiledPropertyNumberFromTile(gid: number, name: string): number | undefined {
-      const mapData = this.map as unknown as {
-        tilesets?: Array<{
-          firstgid: number;
-          total?: number;
-          tiles?: Array<{ id: number; properties?: Array<{ name: string; value: number }> }>;
-        }>;
-      };
-      const tilesets = mapData.tilesets;
-      if (!Array.isArray(tilesets)) return undefined;
-      for (const ts of tilesets) {
-        const total = ts.total ?? (ts.tiles?.length ?? 0);
-        if (gid >= ts.firstgid && gid < ts.firstgid + total) {
-          const tileIndex = gid - ts.firstgid;
-          const tile =
-            ts.tiles?.[tileIndex] ??
-            ts.tiles?.find((t) => t.id === tileIndex);
-          if (tile?.properties) {
-            const p = tile.properties.find((pr) => pr.name === name);
-            return p != null ? Number(p.value) : undefined;
-          }
-          return undefined;
-        }
+      for (let i = 0; i < this.map.tilesets.length; i++) {
+        const tileset = this.map.tilesets[i];
+        if (!tileset.containsTileIndex(gid)) continue;
+        const props = tileset.getTileProperties(gid) as
+          | Record<string, unknown>
+          | null
+          | undefined;
+        if (props == null || !(name in props)) return undefined;
+        const raw = props[name];
+        if (raw == null) return undefined;
+        const n = Number(raw);
+        return Number.isFinite(n) ? n : undefined;
       }
       return undefined;
     }
@@ -1443,7 +1464,11 @@ export function createMainScene(PhaserLib: typeof Phaser) {
         GAME_CONSTANTS.PLAYER.ACTUAL_HEIGHT,
       );
       playerBody.setCollideWorldBounds(true);
-      this.player.setDepth(DEPTH_PLAYER_AND_ENEMY);
+      this.player.setDepth(
+        this.getEffectiveStageNumber() === 3
+          ? DEPTH_PLAYER_STAGE3
+          : DEPTH_PLAYER_AND_ENEMY,
+      );
     }
 
     private applyPlayerBodySize(
@@ -1477,35 +1502,68 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       );
     }
 
+    /** `physics.add.collider`（platformLayer）と同じ当たり判定条件。 */
+    private shouldProcessPlayerPlatformTileCollision(
+      object1:
+        | Phaser.Types.Physics.Arcade.GameObjectWithBody
+        | Phaser.Physics.Arcade.Body
+        | Phaser.Physics.Arcade.StaticBody
+        | Phaser.Tilemaps.Tile,
+      object2:
+        | Phaser.Types.Physics.Arcade.GameObjectWithBody
+        | Phaser.Physics.Arcade.Body
+        | Phaser.Physics.Arcade.StaticBody
+        | Phaser.Tilemaps.Tile,
+    ): boolean {
+      const player = object1 as Phaser.Physics.Arcade.Sprite;
+      const tile = object2 as Phaser.Tilemaps.Tile;
+      const playerBody = player.body as Phaser.Physics.Arcade.Body;
+
+      if (tile.properties && tile.properties.oneWay !== true) {
+        return true;
+      }
+      if (playerBody.velocity.y < 0) return false;
+
+      const playerBottom = playerBody.bottom;
+      const prevPlayerBottom = playerBody.prev.y + playerBody.height;
+      const tileTop = tile.pixelY;
+
+      if (
+        prevPlayerBottom <=
+          tileTop + GAME_CONSTANTS.COLLISION.ONE_WAY_TOLERANCE_PREV ||
+        playerBottom <=
+          tileTop + GAME_CONSTANTS.COLLISION.ONE_WAY_TOLERANCE_CURRENT
+      ) {
+        return true;
+      }
+      return false;
+    }
+
+    /** スポーン位置のタイルめり込みを手動 `collide` で解消し `playerStart` を同期する。 */
+    private resolveSpawnOverlapWithPlatforms() {
+      const body = this.player.body as Phaser.Physics.Arcade.Body;
+      body.updateFromGameObject();
+      for (let i = 0; i < 12; i++) {
+        this.physics.world.collide(
+          this.player,
+          this.platformLayer,
+          undefined,
+          this.shouldProcessPlayerPlatformTileCollision,
+          this,
+        );
+      }
+      body.setVelocity(0, 0);
+      this.playerStartX = this.player.x;
+      this.playerStartY = this.player.y;
+    }
+
     private setupPlayerCollision() {
       this.physics.add.collider(
         this.player,
         this.platformLayer,
         undefined,
-        (playerObj, tileObj) => {
-          const player = playerObj as Phaser.Physics.Arcade.Sprite;
-          const tile = tileObj as Phaser.Tilemaps.Tile;
-          const playerBody = player.body as Phaser.Physics.Arcade.Body;
-
-          if (tile.properties && tile.properties.oneWay !== true) {
-            return true;
-          }
-          if (playerBody.velocity.y < 0) return false;
-
-          const playerBottom = playerBody.bottom;
-          const prevPlayerBottom = playerBody.prev.y + playerBody.height;
-          const tileTop = tile.pixelY;
-
-          if (
-            prevPlayerBottom <=
-              tileTop + GAME_CONSTANTS.COLLISION.ONE_WAY_TOLERANCE_PREV ||
-            playerBottom <=
-              tileTop + GAME_CONSTANTS.COLLISION.ONE_WAY_TOLERANCE_CURRENT
-          ) {
-            return true;
-          }
-          return false;
-        },
+        this.shouldProcessPlayerPlatformTileCollision,
+        this,
       );
 
       if (this.movingPlatforms) {
@@ -1525,6 +1583,8 @@ export function createMainScene(PhaserLib: typeof Phaser) {
           this,
         );
       }
+
+      this.resolveSpawnOverlapWithPlatforms();
     }
 
     /** プレイヤーが動く床の上に乗ったときに呼ばれる。乗っている床を記録し、update で位置を同期する。 */
@@ -1570,7 +1630,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
 
       const objectLayer = this.map.getObjectLayer(OBJECT_LAYER_NAME);
       if (objectLayer) {
-        // stage2: Bird は Enemies レイヤーのみで使用。objectsLayer の Bird_1 は読み込まない
+        // 2nd/3rd: Bird は Enemies レイヤーのタイルオブジェクトのみ。objectsLayer の Bird_1 は読み込まない
         for (const obj of objectLayer.objects.filter((o) =>
           ENEMY_OBJECT_NAMES.includes(o.name as (typeof ENEMY_OBJECT_NAMES)[number]) &&
           o.name !== BIRD_1_OBJECT_NAME,
@@ -1589,15 +1649,16 @@ export function createMainScene(PhaserLib: typeof Phaser) {
 
       const enemiesLayer = this.map.getObjectLayer(ENEMIES_LAYER_NAME);
       if (enemiesLayer) {
+        const birdGidRange = getTilesetGidRange(this.map, BIRD_1_OBJECT_NAME);
+        const spiderGidRange = getTilesetGidRange(this.map, ENEMY_OBJECT_NAME);
+
         for (const obj of enemiesLayer.objects) {
           if (obj.x === undefined || obj.y === undefined || obj.gid == null) {
             continue;
           }
           const gid = obj.gid;
-          const isBirdFromLayer =
-            gid >= BIRD_1_FIRST_GID && gid < BIRD_1_FIRST_GID + 3;
-          const isSpiderFromLayer =
-            gid >= SPIDER_FIRST_GID && gid < SPIDER_FIRST_GID + 3;
+          const isBirdFromLayer = isGidInTilesetRange(gid, birdGidRange);
+          const isSpiderFromLayer = isGidInTilesetRange(gid, spiderGidRange);
           if (isBirdFromLayer || isSpiderFromLayer) {
             enemyObjects.push({
               x: obj.x,
@@ -1675,7 +1736,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
           enemyBody.setCollideWorldBounds(true);
           enemy.play("spider-walk", true);
 
-          // stage2 Spider（Enemies層）: 初速をマイナス（左へ）、画像を左向きに
+          // 2nd/3rd Spider（Enemies層）: 初速をマイナス（左へ）、画像を左向きに
           if (spiderRangeMode) {
             const spiderSpeed =
               (enemy as EnemySprite).speed ?? GAME_CONSTANTS.ENEMY.SPEED_X;

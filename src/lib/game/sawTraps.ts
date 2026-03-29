@@ -15,6 +15,17 @@ import {
 
 type PolylinePoint = { x: number; y: number };
 
+const DATA_SAW_FOLLOW_CONFIG = "sawFollowConfig";
+const DATA_SAW_START_X = "sawStartX";
+const DATA_SAW_START_Y = "sawStartY";
+
+const sawFollowConfig = {
+  duration: SAW_FOLLOW_DURATION_MS,
+  repeat: -1,
+  yoyo: true,
+  rotateToPath: false,
+};
+
 /**
  * ポリラインがレールの端に描かれている想定で、ノコギリの中心がレール中央を通るオフセットを返す。
  */
@@ -99,12 +110,10 @@ export function createSawFollowers(
       ASSET_KEYS.CIRCULAR_SAW,
     );
     saw.setOrigin(0.5, 0.5);
-    saw.startFollow({
-      duration: SAW_FOLLOW_DURATION_MS,
-      repeat: -1,
-      yoyo: true,
-      rotateToPath: false,
-    });
+    saw.setData(DATA_SAW_FOLLOW_CONFIG, sawFollowConfig);
+    saw.setData(DATA_SAW_START_X, points[0].x);
+    saw.setData(DATA_SAW_START_Y, points[0].y);
+    saw.startFollow(sawFollowConfig);
     scene.physics.add.existing(saw);
     const body = saw.body as Phaser.Physics.Arcade.Body;
     body.setAllowGravity(false);
@@ -115,4 +124,29 @@ export function createSawFollowers(
   }
 
   return group;
+}
+
+/** タイトル待機後のゲーム開始など：PathFollower を軌道の先頭に戻して追従をやり直す。 */
+export function resetSawFollowersToStart(
+  group: Phaser.GameObjects.Group | undefined,
+): void {
+  if (!group) return;
+  for (const child of group.getChildren()) {
+    const saw = child as Phaser.GameObjects.PathFollower;
+    const cfg = saw.getData(DATA_SAW_FOLLOW_CONFIG) as
+      | typeof sawFollowConfig
+      | undefined;
+    if (!cfg) continue;
+    saw.stopFollow();
+    const sx = saw.getData(DATA_SAW_START_X) as number;
+    const sy = saw.getData(DATA_SAW_START_Y) as number;
+    saw.setPosition(sx, sy);
+    saw.angle = 0;
+    const body = saw.body as Phaser.Physics.Arcade.Body | undefined;
+    if (body) {
+      body.setVelocity(0, 0);
+      body.updateFromGameObject();
+    }
+    saw.startFollow(cfg);
+  }
 }

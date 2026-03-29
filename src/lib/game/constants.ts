@@ -109,6 +109,14 @@ export const PLATFORM_FEET_CHECK_OFFSET = 2;
 export const DEPTH_BOUNCEPAD = 100;
 /** 描画深度：プレイヤー・敵（Bouncepad より上に表示） */
 export const DEPTH_PLAYER_AND_ENEMY = 101;
+/**
+ * 3rd ステージの動く床。敵（DEPTH_PLAYER_AND_ENEMY）より手前に描画する。
+ */
+export const DEPTH_MOVING_PLATFORM_STAGE3 = 102;
+/**
+ * 3rd ステージのプレイヤー。動く床より手前に描画する（床に乗ったときに隠れないようにする）。
+ */
+export const DEPTH_PLAYER_STAGE3 = 103;
 /** 描画深度：3rd ステージのレール（ノコギリより下に表示） */
 export const DEPTH_RAILS = 99;
 
@@ -211,13 +219,13 @@ export const TITLE_COPYRIGHT_OFFSET_Y = 30;
 
 /** タイルマップのオブジェクトレイヤー名・オブジェクト名（Tiled と一致させる） */
 export const OBJECT_LAYER_NAME = "objectsLayer";
-/** 2nd ステージの動く床オブジェクトを置くレイヤー名（方法A: 16pxタイルを3枚ずつ Physics Group で制御） */
+/** 2nd/3rd ステージの動く床オブジェクトを置くレイヤー名（方法A: 16pxタイルを3枚ずつ Physics Group で制御） */
 export const MOVING_PLATFORMS_LAYER_NAME = "movingPlatforms";
 /** 2nd ステージのコインを置くオブジェクトレイヤー名（タイルオブジェクトで配置） */
 export const COINS_LAYER_NAME = "Coins";
-/** 2nd ステージの敵を置くオブジェクトレイヤー名（Spider_1 タイルオブジェクトで配置） */
+/** 2nd/3rd ステージの敵を置くオブジェクトレイヤー名（Bird_1 / Spider_1 のタイルオブジェクトで配置） */
 export const ENEMIES_LAYER_NAME = "Enemies";
-/** 2nd ステージタイルマップの Bird_1 タイルセット firstgid */
+/** 2nd ステージタイルマップの Bird_1 タイルセット firstgid（参照用。実行時は `tiledTilesetGid` で解決する） */
 export const BIRD_1_FIRST_GID = 15;
 /** 2nd ステージタイルマップの Spider_1 タイルセット firstgid */
 export const SPIDER_FIRST_GID = 25;
@@ -378,9 +386,9 @@ export const TILEMAP_ASSETS = {
 /** Platform.png スプライトシート用（タイルマップの Platform タイルセット読み込み用） */
 export const PLATFORM_FRAME_WIDTH = 16;
 export const PLATFORM_FRAME_HEIGHT = 16;
-/** 2nd ステージタイルマップの Platform タイルセット firstgid（動く床の gid 判定用） */
+/** 2nd ステージタイルマップの Platform タイルセット firstgid（参照用。動く床の gid は `movingPlatforms` 内で実行時解決） */
 export const PLATFORM_FIRST_GID = 21;
-/** 2nd ステージの動く床：Y 軸オフセット（px）。Tiled 配置位置からの調整 */
+/** 2nd/3rd ステージの動く床：Y 軸オフセット（px）。Tiled 配置位置からの調整 */
 export const MOVING_PLATFORM_OFFSET_Y = -16;
 /** 動く床のデフォルト速度（px/秒）。Tiled の speed プロパティ未設定時 */
 export const MOVING_PLATFORM_DEFAULT_SPEED = 100;

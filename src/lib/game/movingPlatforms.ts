@@ -1,5 +1,5 @@
 /**
- * 2nd ステージの動く床（方法A: 16pxタイルを3枚ずつ Physics Group で同期制御）。
+ * 2nd/3rd ステージ共通の動く床（方法A: 16pxタイルを3枚ずつ Physics Group で同期制御）。
  * タイルマップの MovingPlatforms レイヤーから生成・更新・リセットを行う。
  */
 import {
@@ -9,6 +9,13 @@ import {
   MOVING_PLATFORM_DEFAULT_SPEED,
   MOVING_PLATFORM_OFFSET_Y,
 } from "@/lib/game/constants";
+import { getTilesetGidRange } from "@/lib/game/tiledTilesetGid";
+
+/** Tiled の Platform タイルセット名（`collectTilesets` のキーと一致） */
+const PLATFORM_TILESET_NAME = "Platform";
+
+/** 動く床1組あたりの Platform タイル枚数（gid は firstgid から連続3つ） */
+const MOVING_PLATFORM_GID_SPAN = 3;
 
 /** ワンウェイ当たり判定の横方向マージン（px） */
 const ONE_WAY_HORIZONTAL_MARGIN = 2;
@@ -18,20 +25,26 @@ const ONE_WAY_HORIZONTAL_MARGIN = 2;
  * @param scene - Phaser シーン
  * @param map - タイルマップ
  * @param layerName - オブジェクトレイヤー名（例: "movingPlatforms"）
- * @param platformFirstGid - Platform タイルセットの firstgid
  * @param getTiledPropertyNumber - オブジェクトの数値プロパティ取得関数
+ * @param spriteDepth - 各パーツの `setDepth`（2nd は 0、3rd は敵より手前など）
  * @returns 生成したグループ。レイヤーが無いかオブジェクトが0のときは null
  */
 export function createMovingPlatforms(
   scene: Phaser.Scene,
   map: Phaser.Tilemaps.Tilemap,
   layerName: string,
-  platformFirstGid: number,
   getTiledPropertyNumber: (
     obj: Phaser.Types.Tilemaps.TiledObject,
     name: string,
   ) => number | undefined,
+  spriteDepth = 0,
 ): Phaser.Physics.Arcade.Group | null {
+  const platformRange = getTilesetGidRange(map, PLATFORM_TILESET_NAME);
+  if (!platformRange || platformRange.tileCount < MOVING_PLATFORM_GID_SPAN) {
+    return null;
+  }
+  const platformFirstGid = platformRange.firstGid;
+
   const layer = map.getObjectLayer(layerName);
   if (!layer) return null;
 
@@ -42,7 +55,8 @@ export function createMovingPlatforms(
   if (objects.length === 0) return null;
 
   const gidInRange = (gid: number) =>
-    gid >= platformFirstGid && gid < platformFirstGid + 3;
+    gid >= platformFirstGid &&
+    gid < platformFirstGid + MOVING_PLATFORM_GID_SPAN;
   const validObjects = objects.filter((obj) => gidInRange(obj.gid));
   if (validObjects.length === 0) return null;
 
@@ -76,7 +90,7 @@ export function createMovingPlatforms(
       frame,
     ) as Phaser.Physics.Arcade.Sprite;
     part.setOrigin(0, 0);
-    part.setDepth(0);
+    part.setDepth(spriteDepth);
 
     const platformID = getPlatformId(obj);
     const speed =

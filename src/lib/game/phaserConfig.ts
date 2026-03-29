@@ -3,7 +3,7 @@
  */
 
 /** ゲーム全体のデバッグ。true のときデバッグモードが有効になる。 */
-export const DEBUG = true;
+export const DEBUG = false;
 
 /**
  * Arcade Physics のデバッグ描画（DEBUG 時のみ有効）。
