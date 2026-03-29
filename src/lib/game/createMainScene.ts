@@ -110,6 +110,7 @@ import {
   getSceneTransitionData,
   shouldSnapBlackOverlayAfterSceneReset,
 } from "@/lib/game/stageRuntime";
+import { setTitleAdvanceHandler } from "@/lib/game/titleAdvanceBridge";
 import { createTitleScreen } from "@/lib/game/titleScreenUI";
 import {
   ARCADE_DEBUG,
@@ -213,6 +214,11 @@ export function createMainScene(PhaserLib: typeof Phaser) {
     /** タイトル画面をタッチしてゲーム開始したか */
     private gameStarted = false;
     private titleScreenRef: TitleScreenUI | null = null;
+    /** タイトルフェード開始済み（キャンバスタッチと START の二重発火防止） */
+    private titleFadeOutStarted = false;
+    private readonly boundStartTitleFadeOut = () => {
+      this.startTitleFadeOut();
+    };
     /** アクションゲーム用BGM（ループ再生・一時停止／停止用） */
     private bgmSound: Phaser.Sound.WebAudioSound | null = null;
     /** ゲームクリア画面用BGM（遷移時に停止するため参照を保持） */
@@ -434,6 +440,8 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       this.background = null;
 
       this.titleScreenRef = null;
+      this.titleFadeOutStarted = false;
+      setTitleAdvanceHandler(null);
       this.stopGameBGM();
       this.bgmSound = null;
 
@@ -451,14 +459,25 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       }
     }
 
-    /** タイトル画面を表示し、タッチで startTitleFadeOut を呼ぶ */
+    /** タイトル画面を表示し、タッチまたは UI の START で startTitleFadeOut を呼ぶ */
     private setupTitleScreen() {
       this.titleScreenRef = createTitleScreen(this);
-      this.input.once("pointerdown", this.startTitleFadeOut, this);
+      this.titleFadeOutStarted = false;
+      this.input.on("pointerdown", this.boundStartTitleFadeOut);
+      setTitleAdvanceHandler(() => {
+        if (this.gameStarted || !this.titleScreenRef || this.titleFadeOutStarted) {
+          return;
+        }
+        this.startTitleFadeOut();
+      });
     }
 
     /** タイトルでタッチ時: ゲームスタート効果音を1回再生＋フェードアウト → 効果音終了後にタイトル削除・フェードイン → ゲーム開始 */
     private startTitleFadeOut() {
+      if (!this.titleScreenRef || this.titleFadeOutStarted) return;
+      this.titleFadeOutStarted = true;
+      this.input.off("pointerdown", this.boundStartTitleFadeOut);
+      setTitleAdvanceHandler(null);
       const duration = GAME_CONSTANTS.CAMERA.FADE_DURATION_MS;
       const gameStartSfx = this.sound.add(ASSET_KEYS.SFX_GAMESTART);
       gameStartSfx.play({ loop: false });
