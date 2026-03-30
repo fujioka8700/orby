@@ -38,7 +38,9 @@ function waitForNonZeroLayoutSize(
 
 /** Phaser.Game 相当（トップレベルで phaser を import しないため最小形状のみ） */
 type PhaserGameHandle = {
-  destroy: (removeCanvas?: boolean) => void;
+  // Phaser.Game#destroy の first-arg は boolean 必須の型になっているため、
+  // このハンドルでも必須引数として合わせる（本コード側では常に destroy(true) だけ呼んでいる）
+  destroy: (removeCanvas: boolean, noReturn?: boolean) => void;
   scale: { refresh: () => void };
 };
 
@@ -81,7 +83,8 @@ export function usePhaserGame(
       const scaleOverrides =
         mode === "envelop"
           ? {
-              mode: P.Scale.ENVELOP as const,
+              // Phaser's ScaleConfig `mode` expects the ScaleModes value; `as const` causes TS error here.
+              mode: P.Scale.ENVELOP,
               autoCenter: P.Scale.CENTER_BOTH,
             }
           : undefined;

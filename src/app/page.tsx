@@ -1,12 +1,10 @@
-"use client";
-
-import { useRef } from "react";
-import { GameBoyConsole } from "@/components/gameboy/GameBoyConsole";
-import { usePhaserGame } from "@/hooks/usePhaserGame";
+import { GameBoy } from "@/app/game-boy/GameBoy";
+import { GameBoyShell } from "@/app/game-boy/GameBoyShell";
 
 export default function HomePage() {
-  const gameRef = useRef<HTMLDivElement>(null);
-  usePhaserGame(gameRef);
-
-  return <GameBoyConsole gameRef={gameRef} />;
+  return (
+    <GameBoyShell>
+      <GameBoy />
+    </GameBoyShell>
+  );
 }

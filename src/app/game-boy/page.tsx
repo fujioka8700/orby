@@ -1,7 +1,5 @@
-export default function GameBoyPlaceholderPage() {
-  return (
-    <main className="min-h-dvh">
-      <div className="game-boy" />
-    </main>
-  );
+import { GameBoy } from "./GameBoy";
+
+export default function GameBoyPage() {
+  return <GameBoy />;
 }

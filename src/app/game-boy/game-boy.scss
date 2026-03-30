@@ -16,8 +16,8 @@ $buttonBackground: #dbdcd7;
 @import url("https://fonts.googleapis.com/css?family=Righteous&display=swap");
 
 /* CodePen 原版: html/body の中央配置を、このルートのみに閉じ込める（Next 全体へ影響させない） */
-.game-boy2-viewport {
-  /* /game-boy2 はビューポートに依存せず常に「パソコン版」（倍率 5）。メディアクエリは使わない */
+.game-boy-viewport {
+  /* /game-boy はビューポートに依存せず常に「パソコン版」（倍率 5）。メディアクエリは使わない */
   --sizeMultiplicator: 5;
   /* Phaser ゲーム解像度。LCD の設計上の寸法（.gb の scale 前）。見た目は × 5 で 256×240px 相当 */
   --orby-lcd-design-w: calc(256px / var(--sizeMultiplicator));
@@ -37,7 +37,7 @@ $buttonBackground: #dbdcd7;
   background-color: $bg;
 }
 
-.game-boy2-viewport #mario {
+.game-boy-viewport #mario {
   width: 123px;
   height: 147px;
   position: absolute;

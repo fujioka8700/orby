@@ -1,10 +1,6 @@
 import type { ReactNode } from "react";
-import "./game-boy.css";
+import { GameBoyShell } from "./GameBoyShell";
 
-export default function GameBoyRouteLayout({
-  children,
-}: Readonly<{
-  children: ReactNode;
-}>) {
-  return children;
+export default function GameBoyLayout({ children }: { children: ReactNode }) {
+  return <GameBoyShell>{children}</GameBoyShell>;
 }

@@ -3,7 +3,7 @@
 import { memo, useRef } from "react";
 import { usePhaserGame } from "@/hooks/usePhaserGame";
 
-function GameBoy2OrbyDisplayImpl() {
+function GameBoyOrbyDisplayImpl() {
   const gameRef = useRef<HTMLDivElement>(null);
   usePhaserGame(gameRef);
 
@@ -21,5 +21,5 @@ function GameBoy2OrbyDisplayImpl() {
 }
 
 /** 親の再レンダーで Phaser が付与した canvas が消えるのを防ぐ */
-export const GameBoy2OrbyDisplay = memo(GameBoy2OrbyDisplayImpl);
-export default GameBoy2OrbyDisplay;
+export const GameBoyOrbyDisplay = memo(GameBoyOrbyDisplayImpl);
+export default GameBoyOrbyDisplay;

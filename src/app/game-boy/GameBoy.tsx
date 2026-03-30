@@ -2,18 +2,18 @@
 
 import { useState } from "react";
 import { setPad } from "@/components/gameboy/gameBoyShared";
+import { useGameBoyJump } from "@/components/gameboy/useGameBoyJump";
 import { requestGameOverRestartFromUi } from "@/lib/game/gameOverRestartBridge";
 import { requestTitleAdvanceFromUi } from "@/lib/game/titleAdvanceBridge";
+import { GameBoyOrbyDisplay } from "./GameBoyOrbyDisplay";
 
 /** GAME OVER 復帰とタイトル開始のどちらかが有効なときだけ反応する */
 function requestGameBoyStartFromUi(): void {
   requestGameOverRestartFromUi();
   requestTitleAdvanceFromUi();
 }
-import { useGameBoyJump } from "@/components/gameboy/useGameBoyJump";
-import { GameBoy2OrbySlot } from "./GameBoy2OrbySlot";
 
-export function GameBoy2() {
+export function GameBoy() {
   const { setJump } = useGameBoyJump();
   /** Firefox では div + preventDefault で :active が効かないことがあるためクラスで押下を表す */
   const [aPressed, setAPressed] = useState(false);
@@ -38,7 +38,7 @@ export function GameBoy2() {
           <div className="gb__screenText">DOT MATRIX WITH STEREO SOUND</div>
           <div className="gb__led -on" />
           <div className="gb__displayContainer">
-            <GameBoy2OrbySlot />
+            <GameBoyOrbyDisplay />
           </div>
         </div>
         <div className="gb__logo">
