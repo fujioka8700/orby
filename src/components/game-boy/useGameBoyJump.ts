@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { globalControls } from "@/lib/game/globalControls";
-import type { JumpSource } from "@/components/gameboy/gameBoyShared";
+import type { JumpSource } from "./gameBoyShared";
 
 export function useGameBoyJump() {
   const [jumpFrom, setJumpFrom] = useState<Record<JumpSource, boolean>>({
@@ -14,9 +14,9 @@ export function useGameBoyJump() {
     globalControls.up = jumpFrom.padUp || jumpFrom.a;
   }, [jumpFrom]);
 
-  const setJump = (key: JumpSource, down: boolean) => {
+  const setJump = useCallback((key: JumpSource, down: boolean) => {
     setJumpFrom((prev) => ({ ...prev, [key]: down }));
-  };
+  }, []);
 
   return { setJump };
 }

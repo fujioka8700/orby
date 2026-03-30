@@ -110,6 +110,7 @@ import {
   getSceneTransitionData,
   shouldSnapBlackOverlayAfterSceneReset,
 } from "@/lib/game/stageRuntime";
+import { setGameOverRestartFromUiHandler } from "@/lib/game/gameOverRestartBridge";
 import { setTitleAdvanceHandler } from "@/lib/game/titleAdvanceBridge";
 import { createTitleScreen } from "@/lib/game/titleScreenUI";
 import {
@@ -442,6 +443,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
       this.titleScreenRef = null;
       this.titleFadeOutStarted = false;
       setTitleAdvanceHandler(null);
+      setGameOverRestartFromUiHandler(null);
       this.stopGameBGM();
       this.bgmSound = null;
 
@@ -2021,6 +2023,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
 
       this.input.once("pointerdown", this.restartFromGameOver, this);
       this.addGameOverContainerListeners();
+      setGameOverRestartFromUiHandler(() => this.restartFromGameOver());
       const gameOverSound = this.sound.add(ASSET_KEYS.PLAYER_GAMEOVER);
       gameOverSound.play();
     }
@@ -2050,6 +2053,7 @@ export function createMainScene(PhaserLib: typeof Phaser) {
 
     /** GAME OVER 表示用のオーバーレイ・テキストとコンテナリスナーを破棄する */
     private destroyGameOverUI() {
+      setGameOverRestartFromUiHandler(null);
       removeResumeListeners(this.gameOverContainer, this.gameOverContainerHandler);
       this.gameOverContainer = null;
       this.gameOverContainerHandler = null;
