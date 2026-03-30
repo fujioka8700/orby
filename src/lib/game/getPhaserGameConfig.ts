@@ -15,6 +15,7 @@ export function getPhaserGameConfig(
   container: HTMLElement,
   SceneClass: typeof Phaser.Scene,
   P: typeof Phaser,
+  scaleOverrides?: Partial<Phaser.Types.Core.ScaleConfig>,
 ): Phaser.Types.Core.GameConfig {
   return {
     type: P.AUTO,
@@ -26,6 +27,7 @@ export function getPhaserGameConfig(
     scale: {
       mode: P.Scale.FIT,
       autoCenter: P.Scale.CENTER_BOTH,
+      ...scaleOverrides,
     },
     physics: {
       default: "arcade",

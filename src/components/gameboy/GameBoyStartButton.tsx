@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { requestGameOverRestartFromUi } from "@/lib/game/gameOverRestartBridge";
 import { requestTitleAdvanceFromUi } from "@/lib/game/titleAdvanceBridge";
 
 export function GameBoyStartButton() {
@@ -18,7 +19,10 @@ export function GameBoyStartButton() {
       onMouseLeave={() => setPressed(false)}
       onTouchStart={() => setPressed(true)}
       onTouchEnd={() => setPressed(false)}
-      onClick={() => requestTitleAdvanceFromUi()}
+      onClick={() => {
+        requestGameOverRestartFromUi();
+        requestTitleAdvanceFromUi();
+      }}
     >
       START
     </button>

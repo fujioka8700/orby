@@ -1,0 +1,965 @@
+// COLORS
+$bg: transparent;
+$gb: #e4e5df;
+$fontDisplay: #aeadb4;
+$font: #342b86e6;
+$intendation: #cecece;
+$switch: #8c888b;
+$screen: #6f798e;
+$display: #7a8c4b;
+$displayPower: #708007;
+$button: #9e0953;
+$buttonBackground: #dbdcd7;
+
+@import url("https://fonts.googleapis.com/css2?family=Lato:wght@300&display=swap");
+@import url("https://fonts.cdnfonts.com/css/pretendo");
+@import url("https://fonts.googleapis.com/css?family=Righteous&display=swap");
+
+/* CodePen 原版: html/body の中央配置を、このルートのみに閉じ込める（Next 全体へ影響させない） */
+.game-boy2-viewport {
+  /* /game-boy2 はビューポートに依存せず常に「パソコン版」（倍率 5）。メディアクエリは使わない */
+  --sizeMultiplicator: 5;
+  /* Phaser ゲーム解像度。LCD の設計上の寸法（.gb の scale 前）。見た目は × 5 で 256×240px 相当 */
+  --orby-lcd-design-w: calc(256px / var(--sizeMultiplicator));
+  --orby-lcd-design-h: calc(240px / var(--sizeMultiplicator));
+
+  position: relative;
+  box-sizing: border-box;
+  width: fit-content;
+  display: block;
+  margin: 0 auto;
+  overflow: visible;
+  padding: 0;
+  user-select: none;
+  font-size: 2.2px;
+  font-family: "Lato", sans-serif;
+  color: $fontDisplay;
+  background-color: $bg;
+}
+
+.game-boy2-viewport #mario {
+  width: 123px;
+  height: 147px;
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  transition:
+    transform 0.3s,
+    bottom 0.3s;
+  transform: translateY(0%);
+
+  &.-hidden {
+    transform: translateY(100%);
+    bottom: 0;
+  }
+}
+
+.gb {
+  position: relative;
+  transform: scale(var(--sizeMultiplicator));
+  /* LCD が 256×240px 相当になると横がはみ出すブレークポイント用に本体幅を確保 */
+  width: max(89px, calc(var(--orby-lcd-design-w) + 14px));
+  height: 145px;
+  background-color: $gb;
+  border-radius: 4px 4px 19px 4px;
+  padding: 12px 7px;
+  box-sizing: border-box;
+  cursor: default;
+  flex-shrink: 0;
+
+  &__linesTop {
+    width: 100%;
+    height: 1px;
+    background-color: $intendation;
+    position: absolute;
+    left: 0;
+    top: 7px;
+
+    &:before,
+    &:after {
+      content: "";
+      position: absolute;
+      width: 1px;
+      height: 8px;
+      background-color: inherit;
+      bottom: 0;
+    }
+
+    &:before {
+      left: 7px;
+    }
+
+    &:after {
+      right: 7px;
+    }
+  }
+
+  &__screenLines {
+    background: linear-gradient(
+      180deg,
+      rgba(164, 75, 131, 1) 0%,
+      rgba(164, 75, 131, 1) 20%,
+      rgba(255, 255, 255, 0) 20%,
+      rgba(255, 255, 255, 0) 80%,
+      rgba(72, 68, 128, 1) 80%,
+      rgba(72, 68, 128, 1) 100%
+    );
+    width: calc(100% - 6px);
+    height: 2px;
+    position: absolute;
+    margin: 2px 0;
+    top: 0;
+  }
+
+  &__screenText {
+    position: absolute;
+    background-color: $screen;
+    padding: 1px;
+    top: 0;
+    transform: translateY(0.5px);
+    right: 13px;
+  }
+
+  &__led {
+    position: absolute;
+    width: 2px;
+    height: 2px;
+    background-color: #2e2d31;
+    border-radius: 50%;
+    left: 4px;
+    top: 20px;
+    transition: background-color 0.05s;
+
+    &:before {
+      content: "BATTERY";
+      top: 3px;
+      left: -2px;
+      position: absolute;
+    }
+
+    &:after {
+      content: "";
+      width: 500%;
+      height: 500%;
+      background: radial-gradient(
+        circle,
+        rgba(228, 99, 99, 1) 0%,
+        rgba(255, 255, 255, 0) 50%
+      );
+      position: absolute;
+      border-radius: 50%;
+      opacity: 0.6;
+      transform: translate(-50%, -50%) scale(0);
+      left: 50%;
+      top: 50%;
+      transition: transform 0.05s;
+    }
+
+    /* スイッチ ON 時と同じ発光（.gb.-on 時の __led と同等） */
+    &.-on {
+      background-color: #ffb4b4;
+
+      &:after {
+        transform: translate(-50%, -50%) scale(1);
+      }
+    }
+  }
+
+  &__screen {
+    background-color: $screen;
+    border-radius: 3px 3px 11px 3px;
+    padding: 6px 0;
+    display: flex;
+    justify-content: center;
+    position: relative;
+  }
+
+  &__logo {
+    display: flex;
+    color: $font;
+    align-items: baseline;
+    margin-top: 1px;
+  }
+
+  &__logoNintendo {
+    font-family: "Pretendo";
+    font-size: 3.2px;
+    letter-spacing: 0.1px;
+    margin-right: 0.5px;
+  }
+
+  &__logoGameboy {
+    font-size: 5.2px;
+    font-style: italic;
+    font-weight: bold;
+    font-family: "Futura";
+  }
+
+  &__logoTrademark {
+    font-family: sans-serif;
+    font-weight: bold;
+  }
+
+  /* 十字キーと A/B を横並び（CodePen の float 行の見た目を、flex で安定再現） */
+  &__controlsRow {
+    display: flex;
+    width: 100%;
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: space-between;
+    box-sizing: border-box;
+  }
+
+  &__dpad {
+    position: relative;
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    margin-top: 20px;
+
+    /* 十字より下層。クリックは十字へ通す */
+    &:before {
+      content: "";
+      width: 26px;
+      height: 26px;
+      background-color: $buttonBackground;
+      position: absolute;
+      border-radius: 50%;
+      transform: translate(-3px, -9.5px);
+      z-index: 0;
+      pointer-events: none;
+    }
+  }
+
+  /* 十字の横軸を左右に分割（左右だけ :active で反応）
+     箱の垂直中心ではなく上寄せ（:before 丸と同じ見た目の中心に合わせる） */
+  &__dpadHorizontal {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 7px;
+    display: flex;
+    flex-direction: row;
+    z-index: 2;
+  }
+
+  &__dpadPart {
+    $dpad-arm: #181819;
+
+    &.-left,
+    &.-right {
+      flex: 1;
+      height: 7px;
+      border-radius: 1px;
+      background-color: $dpad-arm;
+      position: relative;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition:
+        background-color 0.07s ease,
+        transform 0.07s ease;
+    }
+
+    &.-left {
+      border-radius: 1px 0 0 1px;
+      transform-origin: right center;
+      -moz-user-select: none;
+      user-select: none;
+
+      &.-pressed,
+      &:active {
+        background-color: lighten($dpad-arm, 16%);
+        transform: scale(0.94);
+      }
+    }
+
+    &.-right {
+      border-radius: 0 1px 1px 0;
+      transform-origin: left center;
+
+      &.-pressed,
+      &:active {
+        background-color: lighten($dpad-arm, 16%);
+        transform: scale(0.94);
+      }
+    }
+
+    &.-vertical {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 7px;
+      border-radius: 1px;
+      background-color: #181819;
+      transform: rotate(90deg);
+      transform-origin: center center;
+      z-index: 1;
+
+      &:before {
+        content: "";
+        position: absolute;
+        width: 5px;
+        height: 5px;
+        background-color: #272727;
+        border-radius: 50%;
+        left: 50%;
+        transform: translate(-50%, 1px);
+      }
+    }
+  }
+
+  &__buttons {
+    position: relative;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 4px;
+    margin-top: 16px;
+    transform: rotate(-26deg);
+    transform-origin: center center;
+
+    /* B/A 列の水平中央に台座を置く（旧 float 用の固定 translate は flex ではズレる） */
+    &:before {
+      content: "";
+      width: 30px;
+      height: 15px;
+      background-color: $buttonBackground;
+      position: absolute;
+      left: 50%;
+      top: 5px;
+      z-index: 0;
+      border-radius: 8px;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+    }
+  }
+
+  &__text {
+    transform: scaleY(0.7);
+    color: $font;
+    font-family: "Righteous";
+    font-size: 3.8px;
+    bottom: -6.5px;
+    position: absolute;
+    width: 100%;
+    text-align: center;
+
+    &.-extra {
+      font-size: 3.4px;
+      bottom: -4px;
+    }
+  }
+
+  &__button {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: $button;
+    position: relative;
+    z-index: 1;
+    flex-shrink: 0;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition:
+      background-color 0.07s ease,
+      transform 0.07s ease;
+  }
+
+  &__button.-a {
+    /* 丸は疑似要素のみ。A 文字（.gb__text）は押下で動かさない */
+    background-color: transparent;
+    transition: none;
+    -moz-user-select: none;
+    user-select: none;
+
+    &::before {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background-color: $button;
+      z-index: 0;
+      transition:
+        background-color 0.07s ease,
+        transform 0.07s ease;
+    }
+
+    /* Firefox: div + mousedown preventDefault では :active が付かないことがあるため -pressed も併用 */
+    &.-pressed::before,
+    &:active::before {
+      background-color: lighten($button, 24%);
+      transform: translate(-50%, -50%) scale(0.94);
+    }
+
+    .gb__text {
+      z-index: 1;
+    }
+  }
+
+  &__extraButtons {
+    display: flex;
+    width: fit-content;
+    justify-content: center;
+    gap: 2px;
+    left: 26px;
+    position: absolute;
+    bottom: 24px;
+  }
+
+  &__extraButton {
+    width: 13px;
+    height: 4px;
+    background-color: transparent;
+    border-radius: 2px;
+    transform: rotate(-26deg) scaleY(1.2);
+    position: relative;
+    z-index: 1;
+
+    &::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-color: $buttonBackground;
+      border-radius: 2px;
+      z-index: 0;
+      transition:
+        background-color 0.07s ease,
+        transform 0.07s ease;
+    }
+
+    &:after {
+      position: absolute;
+      content: "";
+      width: 11px;
+      height: 2px;
+      background-color: $switch;
+      border-radius: 1px;
+      transform: translate(1px, 1px);
+      z-index: 0;
+    }
+
+    .gb__text {
+      z-index: 2;
+    }
+
+    &.-start {
+      &.-pressed::before,
+      &:active::before {
+        background-color: lighten($button, 24%);
+        transform: scale(0.94);
+      }
+    }
+  }
+
+  &__speaker {
+    display: flex;
+    gap: 3px;
+    transform: rotate(-30deg);
+    position: absolute;
+    bottom: 8px;
+    right: 5px;
+  }
+
+  &__speakerHole {
+    height: 15px;
+    width: 2px;
+    border-radius: 1px;
+    background-color: #ababab;
+    position: relative;
+    overflow: hidden;
+
+    &:not(:first-child):before {
+      content: "";
+      position: absolute;
+      width: 1px;
+      height: 11px;
+      background-color: #585858;
+      transform: translateX(-0.5px);
+    }
+  }
+
+  &__portText {
+    padding: 0 1px;
+    height: 4px;
+    background-color: $intendation;
+    border-radius: 2px;
+    position: absolute;
+    font-size: 2.4px;
+    color: $gb;
+    text-align: center;
+    letter-spacing: 0.1px;
+    display: flex;
+    align-items: center;
+
+    &.-power {
+      top: 2px;
+      left: 10px;
+    }
+
+    &.-power:before {
+      content: "◀";
+    }
+
+    &.-power:after {
+      content: "▶";
+    }
+
+    &.-phones {
+      bottom: 2px;
+      left: 33px;
+    }
+
+    &.-phones:before {
+      content: "☊";
+      font-size: 3px;
+    }
+  }
+
+  &__lines {
+    display: flex;
+    gap: 1px;
+    height: 2px;
+    position: absolute;
+
+    &.-phones {
+      left: 40px;
+      bottom: 0;
+    }
+
+    &.-power {
+      top: 0;
+      left: 12px;
+    }
+  }
+
+  &__line {
+    width: 1px;
+    background-color: $intendation;
+  }
+
+  &__switch {
+    position: absolute;
+    width: 5px;
+    height: 1px;
+    background-color: $switch;
+    top: -1px;
+    left: 9px;
+    z-index: -1;
+    transition: transform 0.4s ease-out;
+
+    &:before {
+      content: "";
+      background-color: inherit;
+      width: 3px;
+      height: 2px;
+      border-radius: 50%;
+      position: absolute;
+      left: 1px;
+      top: -1px;
+    }
+
+    /* 本体は電源オフのまま、スライドだけ ON 側（.gb.-on と同じ 6px） */
+    &.-on {
+      transform: translateX(6px);
+    }
+  }
+
+  &__displayContainer {
+    width: var(--orby-lcd-design-w);
+    height: var(--orby-lcd-design-h);
+    background-color: $display;
+    position: relative;
+    z-index: 1;
+    overflow: hidden;
+  }
+
+  &__phaserMount {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    min-width: 100%;
+    min-height: 100%;
+    overflow: hidden;
+    touch-action: none;
+    user-select: none;
+    /* Phaser の canvas を確実に LCD 内に重ねる（兄弟の absolute 装飾より手前） */
+    z-index: 2;
+    isolation: isolate;
+
+    canvas {
+      display: block;
+      position: relative;
+      z-index: 1;
+      /* 見た目 256×240px：親とゲーム解像度が同じアスペクトのため FIT で全面塗り */
+      width: 100% !important;
+      height: 100% !important;
+      margin: 0 !important;
+      image-rendering: pixelated;
+    }
+  }
+
+  &__pixelLine {
+    width: 100%;
+    height: 1px;
+    background-color: black;
+    opacity: 0.6;
+    position: absolute;
+    animation: fade-out 0.3s 0.8s forwards;
+  }
+
+}
+
+@keyframes fade-out {
+  0% {
+    opacity: 0.6;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.gb {
+  $blockSelector: &;
+
+  &.-on {
+    #{$blockSelector}__switch {
+      transform: translateX(6px);
+    }
+
+    #{$blockSelector}__led {
+      background-color: #ffb4b4;
+
+      &:after {
+        transform: translate(-50%, -50%) scale(1);
+      }
+    }
+
+    #{$blockSelector}__displayContainer {
+      background-color: $displayPower;
+      transition: background-color 1s 0.4s;
+    }
+  }
+}
+
+:root {
+  --pixel: black;
+  --nintendoLogo:
+    1px 1px 0 var(--pixel), 2px 1px 0 var(--pixel), 3px 1px 0 var(--pixel),
+    4px 1px 0 var(--pixel), 11px 1px 0 var(--pixel), 12px 1px 0 var(--pixel),
+    13px 1px 0 var(--pixel), 14px 1px 0 var(--pixel), 17px 1px 0 var(--pixel),
+    18px 1px 0 var(--pixel), 19px 1px 0 var(--pixel), 20px 1px 0 var(--pixel),
+    79px 1px 0 var(--pixel), 80px 1px 0 var(--pixel), 81px 1px 0 var(--pixel),
+    82px 1px 0 var(--pixel), 99px 1px 0 var(--pixel), 100px 1px 0 var(--pixel),
+    101px 1px 0 var(--pixel), 102px 1px 0 var(--pixel), 1px 2px 0 var(--pixel),
+    2px 2px 0 var(--pixel), 3px 2px 0 var(--pixel), 4px 2px 0 var(--pixel),
+    11px 2px 0 var(--pixel), 12px 2px 0 var(--pixel), 13px 2px 0 var(--pixel),
+    14px 2px 0 var(--pixel), 17px 2px 0 var(--pixel), 18px 2px 0 var(--pixel),
+    19px 2px 0 var(--pixel), 20px 2px 0 var(--pixel), 79px 2px 0 var(--pixel),
+    80px 2px 0 var(--pixel), 81px 2px 0 var(--pixel), 82px 2px 0 var(--pixel),
+    98px 2px 0 var(--pixel), 103px 2px 0 var(--pixel), 1px 3px 0 var(--pixel),
+    2px 3px 0 var(--pixel), 3px 3px 0 var(--pixel), 4px 3px 0 var(--pixel),
+    5px 3px 0 var(--pixel), 6px 3px 0 var(--pixel), 11px 3px 0 var(--pixel),
+    12px 3px 0 var(--pixel), 13px 3px 0 var(--pixel), 14px 3px 0 var(--pixel),
+    17px 3px 0 var(--pixel), 18px 3px 0 var(--pixel), 19px 3px 0 var(--pixel),
+    20px 3px 0 var(--pixel), 37px 3px 0 var(--pixel), 38px 3px 0 var(--pixel),
+    39px 3px 0 var(--pixel), 40px 3px 0 var(--pixel), 79px 3px 0 var(--pixel),
+    80px 3px 0 var(--pixel), 81px 3px 0 var(--pixel), 82px 3px 0 var(--pixel),
+    97px 3px 0 var(--pixel), 99px 3px 0 var(--pixel), 100px 3px 0 var(--pixel),
+    101px 3px 0 var(--pixel), 104px 3px 0 var(--pixel), 1px 4px 0 var(--pixel),
+    2px 4px 0 var(--pixel), 3px 4px 0 var(--pixel), 4px 4px 0 var(--pixel),
+    5px 4px 0 var(--pixel), 6px 4px 0 var(--pixel), 11px 4px 0 var(--pixel),
+    12px 4px 0 var(--pixel), 13px 4px 0 var(--pixel), 14px 4px 0 var(--pixel),
+    17px 4px 0 var(--pixel), 18px 4px 0 var(--pixel), 19px 4px 0 var(--pixel),
+    20px 4px 0 var(--pixel), 37px 4px 0 var(--pixel), 38px 4px 0 var(--pixel),
+    39px 4px 0 var(--pixel), 40px 4px 0 var(--pixel), 79px 4px 0 var(--pixel),
+    80px 4px 0 var(--pixel), 81px 4px 0 var(--pixel), 82px 4px 0 var(--pixel),
+    97px 4px 0 var(--pixel), 99px 4px 0 var(--pixel), 102px 4px 0 var(--pixel),
+    104px 4px 0 var(--pixel), 1px 5px 0 var(--pixel), 2px 5px 0 var(--pixel),
+    3px 5px 0 var(--pixel), 4px 5px 0 var(--pixel), 5px 5px 0 var(--pixel),
+    6px 5px 0 var(--pixel), 11px 5px 0 var(--pixel), 12px 5px 0 var(--pixel),
+    13px 5px 0 var(--pixel), 14px 5px 0 var(--pixel), 35px 5px 0 var(--pixel),
+    36px 5px 0 var(--pixel), 37px 5px 0 var(--pixel), 38px 5px 0 var(--pixel),
+    39px 5px 0 var(--pixel), 40px 5px 0 var(--pixel), 41px 5px 0 var(--pixel),
+    42px 5px 0 var(--pixel), 79px 5px 0 var(--pixel), 80px 5px 0 var(--pixel),
+    81px 5px 0 var(--pixel), 82px 5px 0 var(--pixel), 97px 5px 0 var(--pixel),
+    99px 5px 0 var(--pixel), 100px 5px 0 var(--pixel), 101px 5px 0 var(--pixel),
+    104px 5px 0 var(--pixel), 1px 6px 0 var(--pixel), 2px 6px 0 var(--pixel),
+    3px 6px 0 var(--pixel), 4px 6px 0 var(--pixel), 5px 6px 0 var(--pixel),
+    6px 6px 0 var(--pixel), 11px 6px 0 var(--pixel), 12px 6px 0 var(--pixel),
+    13px 6px 0 var(--pixel), 14px 6px 0 var(--pixel), 35px 6px 0 var(--pixel),
+    36px 6px 0 var(--pixel), 37px 6px 0 var(--pixel), 38px 6px 0 var(--pixel),
+    39px 6px 0 var(--pixel), 40px 6px 0 var(--pixel), 41px 6px 0 var(--pixel),
+    42px 6px 0 var(--pixel), 79px 6px 0 var(--pixel), 80px 6px 0 var(--pixel),
+    81px 6px 0 var(--pixel), 82px 6px 0 var(--pixel), 97px 6px 0 var(--pixel),
+    99px 6px 0 var(--pixel), 102px 6px 0 var(--pixel), 104px 6px 0 var(--pixel),
+    1px 7px 0 var(--pixel), 2px 7px 0 var(--pixel), 3px 7px 0 var(--pixel),
+    4px 7px 0 var(--pixel), 7px 7px 0 var(--pixel), 8px 7px 0 var(--pixel),
+    11px 7px 0 var(--pixel), 12px 7px 0 var(--pixel), 13px 7px 0 var(--pixel),
+    14px 7px 0 var(--pixel), 17px 7px 0 var(--pixel), 18px 7px 0 var(--pixel),
+    19px 7px 0 var(--pixel), 20px 7px 0 var(--pixel), 23px 7px 0 var(--pixel),
+    24px 7px 0 var(--pixel), 25px 7px 0 var(--pixel), 26px 7px 0 var(--pixel),
+    29px 7px 0 var(--pixel), 30px 7px 0 var(--pixel), 31px 7px 0 var(--pixel),
+    32px 7px 0 var(--pixel), 37px 7px 0 var(--pixel), 38px 7px 0 var(--pixel),
+    39px 7px 0 var(--pixel), 40px 7px 0 var(--pixel), 45px 7px 0 var(--pixel),
+    46px 7px 0 var(--pixel), 47px 7px 0 var(--pixel), 48px 7px 0 var(--pixel),
+    49px 7px 0 var(--pixel), 50px 7px 0 var(--pixel), 51px 7px 0 var(--pixel),
+    52px 7px 0 var(--pixel), 57px 7px 0 var(--pixel), 58px 7px 0 var(--pixel),
+    59px 7px 0 var(--pixel), 60px 7px 0 var(--pixel), 63px 7px 0 var(--pixel),
+    64px 7px 0 var(--pixel), 65px 7px 0 var(--pixel), 66px 7px 0 var(--pixel),
+    73px 7px 0 var(--pixel), 74px 7px 0 var(--pixel), 75px 7px 0 var(--pixel),
+    76px 7px 0 var(--pixel), 77px 7px 0 var(--pixel), 78px 7px 0 var(--pixel),
+    79px 7px 0 var(--pixel), 80px 7px 0 var(--pixel), 81px 7px 0 var(--pixel),
+    82px 7px 0 var(--pixel), 87px 7px 0 var(--pixel), 88px 7px 0 var(--pixel),
+    89px 7px 0 var(--pixel), 90px 7px 0 var(--pixel), 91px 7px 0 var(--pixel),
+    92px 7px 0 var(--pixel), 93px 7px 0 var(--pixel), 94px 7px 0 var(--pixel),
+    98px 7px 0 var(--pixel), 103px 7px 0 var(--pixel), 1px 8px 0 var(--pixel),
+    2px 8px 0 var(--pixel), 3px 8px 0 var(--pixel), 4px 8px 0 var(--pixel),
+    7px 8px 0 var(--pixel), 8px 8px 0 var(--pixel), 11px 8px 0 var(--pixel),
+    12px 8px 0 var(--pixel), 13px 8px 0 var(--pixel), 14px 8px 0 var(--pixel),
+    17px 8px 0 var(--pixel), 18px 8px 0 var(--pixel), 19px 8px 0 var(--pixel),
+    20px 8px 0 var(--pixel), 23px 8px 0 var(--pixel), 24px 8px 0 var(--pixel),
+    25px 8px 0 var(--pixel), 26px 8px 0 var(--pixel), 29px 8px 0 var(--pixel),
+    30px 8px 0 var(--pixel), 31px 8px 0 var(--pixel), 32px 8px 0 var(--pixel),
+    37px 8px 0 var(--pixel), 38px 8px 0 var(--pixel), 39px 8px 0 var(--pixel),
+    40px 8px 0 var(--pixel), 45px 8px 0 var(--pixel), 46px 8px 0 var(--pixel),
+    47px 8px 0 var(--pixel), 48px 8px 0 var(--pixel), 49px 8px 0 var(--pixel),
+    50px 8px 0 var(--pixel), 51px 8px 0 var(--pixel), 52px 8px 0 var(--pixel),
+    57px 8px 0 var(--pixel), 58px 8px 0 var(--pixel), 59px 8px 0 var(--pixel),
+    60px 8px 0 var(--pixel), 63px 8px 0 var(--pixel), 64px 8px 0 var(--pixel),
+    65px 8px 0 var(--pixel), 66px 8px 0 var(--pixel), 73px 8px 0 var(--pixel),
+    74px 8px 0 var(--pixel), 75px 8px 0 var(--pixel), 76px 8px 0 var(--pixel),
+    77px 8px 0 var(--pixel), 78px 8px 0 var(--pixel), 79px 8px 0 var(--pixel),
+    80px 8px 0 var(--pixel), 81px 8px 0 var(--pixel), 82px 8px 0 var(--pixel),
+    87px 8px 0 var(--pixel), 88px 8px 0 var(--pixel), 89px 8px 0 var(--pixel),
+    90px 8px 0 var(--pixel), 91px 8px 0 var(--pixel), 92px 8px 0 var(--pixel),
+    93px 8px 0 var(--pixel), 94px 8px 0 var(--pixel), 99px 8px 0 var(--pixel),
+    100px 8px 0 var(--pixel), 101px 8px 0 var(--pixel),
+    102px 8px 0 var(--pixel), 1px 9px 0 var(--pixel), 2px 9px 0 var(--pixel),
+    3px 9px 0 var(--pixel), 4px 9px 0 var(--pixel), 7px 9px 0 var(--pixel),
+    8px 9px 0 var(--pixel), 11px 9px 0 var(--pixel), 12px 9px 0 var(--pixel),
+    13px 9px 0 var(--pixel), 14px 9px 0 var(--pixel), 17px 9px 0 var(--pixel),
+    18px 9px 0 var(--pixel), 19px 9px 0 var(--pixel), 20px 9px 0 var(--pixel),
+    23px 9px 0 var(--pixel), 24px 9px 0 var(--pixel), 25px 9px 0 var(--pixel),
+    26px 9px 0 var(--pixel), 27px 9px 0 var(--pixel), 28px 9px 0 var(--pixel),
+    31px 9px 0 var(--pixel), 32px 9px 0 var(--pixel), 33px 9px 0 var(--pixel),
+    34px 9px 0 var(--pixel), 37px 9px 0 var(--pixel), 38px 9px 0 var(--pixel),
+    39px 9px 0 var(--pixel), 40px 9px 0 var(--pixel), 43px 9px 0 var(--pixel),
+    44px 9px 0 var(--pixel), 45px 9px 0 var(--pixel), 46px 9px 0 var(--pixel),
+    51px 9px 0 var(--pixel), 52px 9px 0 var(--pixel), 53px 9px 0 var(--pixel),
+    54px 9px 0 var(--pixel), 57px 9px 0 var(--pixel), 58px 9px 0 var(--pixel),
+    59px 9px 0 var(--pixel), 60px 9px 0 var(--pixel), 61px 9px 0 var(--pixel),
+    62px 9px 0 var(--pixel), 65px 9px 0 var(--pixel), 66px 9px 0 var(--pixel),
+    67px 9px 0 var(--pixel), 68px 9px 0 var(--pixel), 71px 9px 0 var(--pixel),
+    72px 9px 0 var(--pixel), 73px 9px 0 var(--pixel), 74px 9px 0 var(--pixel),
+    79px 9px 0 var(--pixel), 80px 9px 0 var(--pixel), 81px 9px 0 var(--pixel),
+    82px 9px 0 var(--pixel), 85px 9px 0 var(--pixel), 86px 9px 0 var(--pixel),
+    87px 9px 0 var(--pixel), 88px 9px 0 var(--pixel), 93px 9px 0 var(--pixel),
+    94px 9px 0 var(--pixel), 95px 9px 0 var(--pixel), 96px 9px 0 var(--pixel),
+    1px 10px 0 var(--pixel), 2px 10px 0 var(--pixel), 3px 10px 0 var(--pixel),
+    4px 10px 0 var(--pixel), 7px 10px 0 var(--pixel), 8px 10px 0 var(--pixel),
+    11px 10px 0 var(--pixel), 12px 10px 0 var(--pixel),
+    13px 10px 0 var(--pixel), 14px 10px 0 var(--pixel),
+    17px 10px 0 var(--pixel), 18px 10px 0 var(--pixel),
+    19px 10px 0 var(--pixel), 20px 10px 0 var(--pixel),
+    23px 10px 0 var(--pixel), 24px 10px 0 var(--pixel),
+    25px 10px 0 var(--pixel), 26px 10px 0 var(--pixel),
+    27px 10px 0 var(--pixel), 28px 10px 0 var(--pixel),
+    31px 10px 0 var(--pixel), 32px 10px 0 var(--pixel),
+    33px 10px 0 var(--pixel), 34px 10px 0 var(--pixel),
+    37px 10px 0 var(--pixel), 38px 10px 0 var(--pixel),
+    39px 10px 0 var(--pixel), 40px 10px 0 var(--pixel),
+    43px 10px 0 var(--pixel), 44px 10px 0 var(--pixel),
+    45px 10px 0 var(--pixel), 46px 10px 0 var(--pixel),
+    51px 10px 0 var(--pixel), 52px 10px 0 var(--pixel),
+    53px 10px 0 var(--pixel), 54px 10px 0 var(--pixel),
+    57px 10px 0 var(--pixel), 58px 10px 0 var(--pixel),
+    59px 10px 0 var(--pixel), 60px 10px 0 var(--pixel),
+    61px 10px 0 var(--pixel), 62px 10px 0 var(--pixel),
+    65px 10px 0 var(--pixel), 66px 10px 0 var(--pixel),
+    67px 10px 0 var(--pixel), 68px 10px 0 var(--pixel),
+    71px 10px 0 var(--pixel), 72px 10px 0 var(--pixel),
+    73px 10px 0 var(--pixel), 74px 10px 0 var(--pixel),
+    79px 10px 0 var(--pixel), 80px 10px 0 var(--pixel),
+    81px 10px 0 var(--pixel), 82px 10px 0 var(--pixel),
+    85px 10px 0 var(--pixel), 86px 10px 0 var(--pixel),
+    87px 10px 0 var(--pixel), 88px 10px 0 var(--pixel),
+    93px 10px 0 var(--pixel), 94px 10px 0 var(--pixel),
+    95px 10px 0 var(--pixel), 96px 10px 0 var(--pixel), 1px 11px 0 var(--pixel),
+    2px 11px 0 var(--pixel), 3px 11px 0 var(--pixel), 4px 11px 0 var(--pixel),
+    9px 11px 0 var(--pixel), 10px 11px 0 var(--pixel), 11px 11px 0 var(--pixel),
+    12px 11px 0 var(--pixel), 13px 11px 0 var(--pixel),
+    14px 11px 0 var(--pixel), 17px 11px 0 var(--pixel),
+    18px 11px 0 var(--pixel), 19px 11px 0 var(--pixel),
+    20px 11px 0 var(--pixel), 23px 11px 0 var(--pixel),
+    24px 11px 0 var(--pixel), 25px 11px 0 var(--pixel),
+    26px 11px 0 var(--pixel), 31px 11px 0 var(--pixel),
+    32px 11px 0 var(--pixel), 33px 11px 0 var(--pixel),
+    34px 11px 0 var(--pixel), 37px 11px 0 var(--pixel),
+    38px 11px 0 var(--pixel), 39px 11px 0 var(--pixel),
+    40px 11px 0 var(--pixel), 43px 11px 0 var(--pixel),
+    44px 11px 0 var(--pixel), 45px 11px 0 var(--pixel),
+    46px 11px 0 var(--pixel), 47px 11px 0 var(--pixel),
+    48px 11px 0 var(--pixel), 49px 11px 0 var(--pixel),
+    50px 11px 0 var(--pixel), 51px 11px 0 var(--pixel),
+    52px 11px 0 var(--pixel), 53px 11px 0 var(--pixel),
+    54px 11px 0 var(--pixel), 57px 11px 0 var(--pixel),
+    58px 11px 0 var(--pixel), 59px 11px 0 var(--pixel),
+    60px 11px 0 var(--pixel), 65px 11px 0 var(--pixel),
+    66px 11px 0 var(--pixel), 67px 11px 0 var(--pixel),
+    68px 11px 0 var(--pixel), 71px 11px 0 var(--pixel),
+    72px 11px 0 var(--pixel), 73px 11px 0 var(--pixel),
+    74px 11px 0 var(--pixel), 79px 11px 0 var(--pixel),
+    80px 11px 0 var(--pixel), 81px 11px 0 var(--pixel),
+    82px 11px 0 var(--pixel), 85px 11px 0 var(--pixel),
+    86px 11px 0 var(--pixel), 87px 11px 0 var(--pixel),
+    88px 11px 0 var(--pixel), 93px 11px 0 var(--pixel),
+    94px 11px 0 var(--pixel), 95px 11px 0 var(--pixel),
+    96px 11px 0 var(--pixel), 1px 12px 0 var(--pixel), 2px 12px 0 var(--pixel),
+    3px 12px 0 var(--pixel), 4px 12px 0 var(--pixel), 9px 12px 0 var(--pixel),
+    10px 12px 0 var(--pixel), 11px 12px 0 var(--pixel),
+    12px 12px 0 var(--pixel), 13px 12px 0 var(--pixel),
+    14px 12px 0 var(--pixel), 17px 12px 0 var(--pixel),
+    18px 12px 0 var(--pixel), 19px 12px 0 var(--pixel),
+    20px 12px 0 var(--pixel), 23px 12px 0 var(--pixel),
+    24px 12px 0 var(--pixel), 25px 12px 0 var(--pixel),
+    26px 12px 0 var(--pixel), 31px 12px 0 var(--pixel),
+    32px 12px 0 var(--pixel), 33px 12px 0 var(--pixel),
+    34px 12px 0 var(--pixel), 37px 12px 0 var(--pixel),
+    38px 12px 0 var(--pixel), 39px 12px 0 var(--pixel),
+    40px 12px 0 var(--pixel), 43px 12px 0 var(--pixel),
+    44px 12px 0 var(--pixel), 45px 12px 0 var(--pixel),
+    46px 12px 0 var(--pixel), 47px 12px 0 var(--pixel),
+    48px 12px 0 var(--pixel), 49px 12px 0 var(--pixel),
+    50px 12px 0 var(--pixel), 51px 12px 0 var(--pixel),
+    52px 12px 0 var(--pixel), 53px 12px 0 var(--pixel),
+    54px 12px 0 var(--pixel), 57px 12px 0 var(--pixel),
+    58px 12px 0 var(--pixel), 59px 12px 0 var(--pixel),
+    60px 12px 0 var(--pixel), 65px 12px 0 var(--pixel),
+    66px 12px 0 var(--pixel), 67px 12px 0 var(--pixel),
+    68px 12px 0 var(--pixel), 71px 12px 0 var(--pixel),
+    72px 12px 0 var(--pixel), 73px 12px 0 var(--pixel),
+    74px 12px 0 var(--pixel), 79px 12px 0 var(--pixel),
+    80px 12px 0 var(--pixel), 81px 12px 0 var(--pixel),
+    82px 12px 0 var(--pixel), 85px 12px 0 var(--pixel),
+    86px 12px 0 var(--pixel), 87px 12px 0 var(--pixel),
+    88px 12px 0 var(--pixel), 93px 12px 0 var(--pixel),
+    94px 12px 0 var(--pixel), 95px 12px 0 var(--pixel),
+    96px 12px 0 var(--pixel), 1px 13px 0 var(--pixel), 2px 13px 0 var(--pixel),
+    3px 13px 0 var(--pixel), 4px 13px 0 var(--pixel), 9px 13px 0 var(--pixel),
+    10px 13px 0 var(--pixel), 11px 13px 0 var(--pixel),
+    12px 13px 0 var(--pixel), 13px 13px 0 var(--pixel),
+    14px 13px 0 var(--pixel), 17px 13px 0 var(--pixel),
+    18px 13px 0 var(--pixel), 19px 13px 0 var(--pixel),
+    20px 13px 0 var(--pixel), 23px 13px 0 var(--pixel),
+    24px 13px 0 var(--pixel), 25px 13px 0 var(--pixel),
+    26px 13px 0 var(--pixel), 31px 13px 0 var(--pixel),
+    32px 13px 0 var(--pixel), 33px 13px 0 var(--pixel),
+    34px 13px 0 var(--pixel), 37px 13px 0 var(--pixel),
+    38px 13px 0 var(--pixel), 39px 13px 0 var(--pixel),
+    40px 13px 0 var(--pixel), 43px 13px 0 var(--pixel),
+    44px 13px 0 var(--pixel), 45px 13px 0 var(--pixel),
+    46px 13px 0 var(--pixel), 57px 13px 0 var(--pixel),
+    58px 13px 0 var(--pixel), 59px 13px 0 var(--pixel),
+    60px 13px 0 var(--pixel), 65px 13px 0 var(--pixel),
+    66px 13px 0 var(--pixel), 67px 13px 0 var(--pixel),
+    68px 13px 0 var(--pixel), 71px 13px 0 var(--pixel),
+    72px 13px 0 var(--pixel), 73px 13px 0 var(--pixel),
+    74px 13px 0 var(--pixel), 79px 13px 0 var(--pixel),
+    80px 13px 0 var(--pixel), 81px 13px 0 var(--pixel),
+    82px 13px 0 var(--pixel), 85px 13px 0 var(--pixel),
+    86px 13px 0 var(--pixel), 87px 13px 0 var(--pixel),
+    88px 13px 0 var(--pixel), 93px 13px 0 var(--pixel),
+    94px 13px 0 var(--pixel), 95px 13px 0 var(--pixel),
+    96px 13px 0 var(--pixel), 1px 14px 0 var(--pixel), 2px 14px 0 var(--pixel),
+    3px 14px 0 var(--pixel), 4px 14px 0 var(--pixel), 9px 14px 0 var(--pixel),
+    10px 14px 0 var(--pixel), 11px 14px 0 var(--pixel),
+    12px 14px 0 var(--pixel), 13px 14px 0 var(--pixel),
+    14px 14px 0 var(--pixel), 17px 14px 0 var(--pixel),
+    18px 14px 0 var(--pixel), 19px 14px 0 var(--pixel),
+    20px 14px 0 var(--pixel), 23px 14px 0 var(--pixel),
+    24px 14px 0 var(--pixel), 25px 14px 0 var(--pixel),
+    26px 14px 0 var(--pixel), 31px 14px 0 var(--pixel),
+    32px 14px 0 var(--pixel), 33px 14px 0 var(--pixel),
+    34px 14px 0 var(--pixel), 37px 14px 0 var(--pixel),
+    38px 14px 0 var(--pixel), 39px 14px 0 var(--pixel),
+    40px 14px 0 var(--pixel), 43px 14px 0 var(--pixel),
+    44px 14px 0 var(--pixel), 45px 14px 0 var(--pixel),
+    46px 14px 0 var(--pixel), 57px 14px 0 var(--pixel),
+    58px 14px 0 var(--pixel), 59px 14px 0 var(--pixel),
+    60px 14px 0 var(--pixel), 65px 14px 0 var(--pixel),
+    66px 14px 0 var(--pixel), 67px 14px 0 var(--pixel),
+    68px 14px 0 var(--pixel), 71px 14px 0 var(--pixel),
+    72px 14px 0 var(--pixel), 73px 14px 0 var(--pixel),
+    74px 14px 0 var(--pixel), 79px 14px 0 var(--pixel),
+    80px 14px 0 var(--pixel), 81px 14px 0 var(--pixel),
+    82px 14px 0 var(--pixel), 85px 14px 0 var(--pixel),
+    86px 14px 0 var(--pixel), 87px 14px 0 var(--pixel),
+    88px 14px 0 var(--pixel), 93px 14px 0 var(--pixel),
+    94px 14px 0 var(--pixel), 95px 14px 0 var(--pixel),
+    96px 14px 0 var(--pixel), 1px 15px 0 var(--pixel), 2px 15px 0 var(--pixel),
+    3px 15px 0 var(--pixel), 4px 15px 0 var(--pixel), 11px 15px 0 var(--pixel),
+    12px 15px 0 var(--pixel), 13px 15px 0 var(--pixel),
+    14px 15px 0 var(--pixel), 17px 15px 0 var(--pixel),
+    18px 15px 0 var(--pixel), 19px 15px 0 var(--pixel),
+    20px 15px 0 var(--pixel), 23px 15px 0 var(--pixel),
+    24px 15px 0 var(--pixel), 25px 15px 0 var(--pixel),
+    26px 15px 0 var(--pixel), 31px 15px 0 var(--pixel),
+    32px 15px 0 var(--pixel), 33px 15px 0 var(--pixel),
+    34px 15px 0 var(--pixel), 37px 15px 0 var(--pixel),
+    38px 15px 0 var(--pixel), 39px 15px 0 var(--pixel),
+    40px 15px 0 var(--pixel), 45px 15px 0 var(--pixel),
+    46px 15px 0 var(--pixel), 47px 15px 0 var(--pixel),
+    48px 15px 0 var(--pixel), 49px 15px 0 var(--pixel),
+    50px 15px 0 var(--pixel), 51px 15px 0 var(--pixel),
+    52px 15px 0 var(--pixel), 53px 15px 0 var(--pixel),
+    54px 15px 0 var(--pixel), 57px 15px 0 var(--pixel),
+    58px 15px 0 var(--pixel), 59px 15px 0 var(--pixel),
+    60px 15px 0 var(--pixel), 65px 15px 0 var(--pixel),
+    66px 15px 0 var(--pixel), 67px 15px 0 var(--pixel),
+    68px 15px 0 var(--pixel), 73px 15px 0 var(--pixel),
+    74px 15px 0 var(--pixel), 75px 15px 0 var(--pixel),
+    76px 15px 0 var(--pixel), 77px 15px 0 var(--pixel),
+    78px 15px 0 var(--pixel), 79px 15px 0 var(--pixel),
+    80px 15px 0 var(--pixel), 81px 15px 0 var(--pixel),
+    82px 15px 0 var(--pixel), 87px 15px 0 var(--pixel),
+    88px 15px 0 var(--pixel), 89px 15px 0 var(--pixel),
+    90px 15px 0 var(--pixel), 91px 15px 0 var(--pixel),
+    92px 15px 0 var(--pixel), 93px 15px 0 var(--pixel),
+    94px 15px 0 var(--pixel), 1px 16px 0 var(--pixel), 2px 16px 0 var(--pixel),
+    3px 16px 0 var(--pixel), 4px 16px 0 var(--pixel), 11px 16px 0 var(--pixel),
+    12px 16px 0 var(--pixel), 13px 16px 0 var(--pixel),
+    14px 16px 0 var(--pixel), 17px 16px 0 var(--pixel),
+    18px 16px 0 var(--pixel), 19px 16px 0 var(--pixel),
+    20px 16px 0 var(--pixel), 23px 16px 0 var(--pixel),
+    24px 16px 0 var(--pixel), 25px 16px 0 var(--pixel),
+    26px 16px 0 var(--pixel), 31px 16px 0 var(--pixel),
+    32px 16px 0 var(--pixel), 33px 16px 0 var(--pixel),
+    34px 16px 0 var(--pixel), 37px 16px 0 var(--pixel),
+    38px 16px 0 var(--pixel), 39px 16px 0 var(--pixel),
+    40px 16px 0 var(--pixel), 45px 16px 0 var(--pixel),
+    46px 16px 0 var(--pixel), 47px 16px 0 var(--pixel),
+    48px 16px 0 var(--pixel), 49px 16px 0 var(--pixel),
+    50px 16px 0 var(--pixel), 51px 16px 0 var(--pixel),
+    52px 16px 0 var(--pixel), 53px 16px 0 var(--pixel),
+    54px 16px 0 var(--pixel), 57px 16px 0 var(--pixel),
+    58px 16px 0 var(--pixel), 59px 16px 0 var(--pixel),
+    60px 16px 0 var(--pixel), 65px 16px 0 var(--pixel),
+    66px 16px 0 var(--pixel), 67px 16px 0 var(--pixel),
+    68px 16px 0 var(--pixel), 73px 16px 0 var(--pixel),
+    74px 16px 0 var(--pixel), 75px 16px 0 var(--pixel),
+    76px 16px 0 var(--pixel), 77px 16px 0 var(--pixel),
+    78px 16px 0 var(--pixel), 79px 16px 0 var(--pixel),
+    80px 16px 0 var(--pixel), 81px 16px 0 var(--pixel),
+    82px 16px 0 var(--pixel), 87px 16px 0 var(--pixel),
+    88px 16px 0 var(--pixel), 89px 16px 0 var(--pixel),
+    90px 16px 0 var(--pixel), 91px 16px 0 var(--pixel),
+    92px 16px 0 var(--pixel), 93px 16px 0 var(--pixel), 94px 16px 0 var(--pixel);
+}
