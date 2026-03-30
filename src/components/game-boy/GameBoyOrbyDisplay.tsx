@@ -22,4 +22,3 @@ function GameBoyOrbyDisplayImpl() {
 
 /** 親の再レンダーで Phaser が付与した canvas が消えるのを防ぐ */
 export const GameBoyOrbyDisplay = memo(GameBoyOrbyDisplayImpl);
-export default GameBoyOrbyDisplay;
