@@ -1,3 +1,5 @@
+@use "sass:color";
+
 // COLORS
 $bg: transparent;
 $gb: #e4e5df;
@@ -11,7 +13,41 @@ $displayPower: #708007;
 $button: #9e0953;
 $buttonBackground: #dbdcd7;
 
-@use "sass:color";
+/* A ボタン・十字左右で共通の透明タッチ領域（設計単位 px） */
+$touch-hit-diameter: 24px;
+
+@mixin touch-hit-circle-base {
+  content: "";
+  position: absolute;
+  width: $touch-hit-diameter;
+  height: $touch-hit-diameter;
+  border-radius: 50%;
+  background: transparent;
+}
+
+@mixin touch-hit-dpad-half($is-left: true) {
+  &::after {
+    @include touch-hit-circle-base;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 1;
+    @if $is-left {
+      right: 0;
+    } @else {
+      left: 0;
+    }
+  }
+}
+
+@mixin touch-hit-a-button-after {
+  &::after {
+    @include touch-hit-circle-base;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 2;
+  }
+}
 
 @import url("https://fonts.googleapis.com/css2?family=Lato:wght@300&display=swap");
 @import url("https://fonts.cdnfonts.com/css/pretendo");
@@ -268,18 +304,17 @@ $buttonBackground: #dbdcd7;
       transform-origin: right center;
       -moz-user-select: none;
       user-select: none;
-
-      &.-pressed,
-      &:active {
-        background-color: color.adjust($dpad-arm, $lightness: 16%);
-        transform: scale(0.94);
-      }
+      @include touch-hit-dpad-half(true);
     }
 
     &.-right {
       border-radius: 0 1px 1px 0;
       transform-origin: left center;
+      @include touch-hit-dpad-half(false);
+    }
 
+    &.-left,
+    &.-right {
       &.-pressed,
       &:active {
         background-color: color.adjust($dpad-arm, $lightness: 16%);
@@ -393,6 +428,9 @@ $buttonBackground: #dbdcd7;
         transform 0.07s ease;
     }
 
+    /* 見た目は 10px のまま、タッチ／クリックだけ広い透明領域（レイアウト・円の位置は不変） */
+    @include touch-hit-a-button-after;
+
     /* Firefox: div + mousedown preventDefault では :active が付かないことがあるため -pressed も併用 */
     &.-pressed::before,
     &:active::before {
@@ -401,7 +439,8 @@ $buttonBackground: #dbdcd7;
     }
 
     .gb__text {
-      z-index: 1;
+      z-index: 3;
+      pointer-events: none;
     }
   }
 
@@ -616,7 +655,6 @@ $buttonBackground: #dbdcd7;
     position: absolute;
     animation: fade-out 0.3s 0.8s forwards;
   }
-
 }
 
 @keyframes fade-out {
